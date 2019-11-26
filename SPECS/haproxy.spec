@@ -178,6 +178,13 @@ exit 0
 %{_mandir}/man1/*
 
 %changelog
+* Thu Nov 21 2019 Benoit Dolez <bdolez@zenetys.com> - 1.8.23-1
+- Fork from https://git.centos.org/rpms/haproxy/tree/c8
+- Update to 1.8.23
+- Add lua-5.3 support
+- Add init script for SysV etc/init.d
+- Make it work for el6, el7 & el8
+
 * Wed Jan 09 2019 Ryan O'Hara <rohara@redhat.com> - 1.8.15-5
 - Resolve CVE-2018-20615 (#1664533)
 
