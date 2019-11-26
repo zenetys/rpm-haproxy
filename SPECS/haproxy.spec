@@ -35,7 +35,6 @@ Requires(pre):      shadow-utils
 
 %if 0%{?rhel} < 7
 %define __global_ldflags %{nil}
-%define use_systemd      %{nil}
 %endif
 
 %if 0%{?rhel} < 8
@@ -43,8 +42,6 @@ Requires(pre):      shadow-utils
 %endif
 
 %if 0%{?rhel} >= 7
-%define use_systemd      USE_SYSTEMD=1
-
 BuildRequires:      systemd-devel
 BuildRequires:      systemd-units
 Requires(post):     systemd
@@ -76,7 +73,13 @@ regparm_opts=
 regparm_opts="USE_REGPARM=1"
 %endif
 
-%{__make} %{?_smp_mflags} CPU="generic" TARGET="linux2628" USE_OPENSSL=1 USE_PCRE=1 USE_ZLIB=1 USE_LUA=1 USE_CRYPT_H=1 USE_SYSTEMD=1 USE_LINUX_TPROXY=1 USE_GETADDRINFO=1 ${regparm_opts} ADDINC="%{optflags}" ADDLIB="%{__global_ldflags}"
+%if 0%{?rhel} >= 7
+systemd_opts="USE_SYSTEMD=1"
+%else
+systemd_opts="USE_SYSTEMD="
+%endif
+
+%{__make} %{?_smp_mflags} CPU="generic" TARGET="linux2628" USE_OPENSSL=1 USE_PCRE=1 USE_ZLIB=1 USE_LUA=1 USE_CRYPT_H=1 ${systemd_opts} USE_LINUX_TPROXY=1 USE_GETADDRINFO=1 ${regparm_opts} ADDINC="%{optflags}" ADDLIB="%{__global_ldflags}"
 
 pushd contrib/halog
 %{__make} ${halog} OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
@@ -152,7 +155,9 @@ exit 0
 %config(noreplace) %{haproxy_confdir}/haproxy.cfg
 %config(noreplace) %{_sysconfdir}/logrotate.d/haproxy
 %config(noreplace) %{_sysconfdir}/sysconfig/haproxy
+%if 0%{?rhel} >= 7
 %{_unitdir}/haproxy.service
+%endif
 %{_sbindir}/haproxy
 %{_bindir}/halog
 %{_bindir}/iprange
