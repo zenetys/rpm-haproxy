@@ -22,15 +22,14 @@ Source2:        haproxy.cfg
 Source3:        haproxy.logrotate
 Source4:        haproxy.sysconfig
 Source5:        halog.1
+Patch0:         bz1664533-fix-handling-priority-flag-HTTP2-decoder.patch
 
-Patch0:		bz1664533-fix-handling-priority-flag-HTTP2-decoder.patch
 
-BuildRequires:  lua-devel
-BuildRequires:  pcre-devel
-BuildRequires:  zlib-devel
-BuildRequires:  openssl-devel
-BuildRequires:  systemd-devel
-BuildRequires:  systemd-units
+BuildRequires:      lua53-devel
+BuildRequires:      pcre-devel
+BuildRequires:      zlib-devel
+BuildRequires:      openssl-devel
+BuildRequires:      glibc-common
 
 Requires(pre):      shadow-utils
 
@@ -103,7 +102,7 @@ popd
 %{__install} -p -m 0755 ./contrib/iprange/iprange %{buildroot}%{_bindir}/iprange
 %{__install} -p -m 0644 ./examples/errorfiles/* %{buildroot}%{haproxy_datadir}
 
-for httpfile in $(find ./examples/errorfiles/ -type f) 
+for httpfile in $(find ./examples/errorfiles/ -type f)
 do
     %{__install} -p -m 0644 $httpfile %{buildroot}%{haproxy_datadir}
 done
@@ -483,7 +482,7 @@ exit 0
 - remove upstream patches, they are now part of source distribution
 
 * Sat Nov 22 2008 Jeremy Hinegardner <jeremy at hinegardner dot org> - 1.3.15.6-2
-- apply upstream patches 
+- apply upstream patches
 
 * Sat Nov 15 2008 Jeremy Hinegardner <jeremy at hinegardner dot org> - 1.3.15.6-1
 - update to 1.3.15.6
