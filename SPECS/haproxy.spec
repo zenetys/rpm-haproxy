@@ -16,10 +16,10 @@ License:        GPLv2+
 
 URL:            http://www.haproxy.org/
 Source0:        http://www.haproxy.org/download/1.8/src/haproxy-%{version}.tar.gz
-Source1:        %{name}.service
-Source2:        %{name}.cfg
-Source3:        %{name}.logrotate
-Source4:        %{name}.sysconfig
+Source1:        haproxy.service
+Source2:        haproxy.cfg
+Source3:        haproxy.logrotate
+Source4:        haproxy.sysconfig
 Source5:        halog.1
 
 Patch0:		bz1664533-fix-handling-priority-flag-HTTP2-decoder.patch
@@ -74,10 +74,10 @@ popd
 %{__make} install-bin DESTDIR=%{buildroot} PREFIX=%{_prefix} TARGET="linux2628"
 %{__make} install-man DESTDIR=%{buildroot} PREFIX=%{_prefix}
 
-%{__install} -p -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/%{name}.service
-%{__install} -p -D -m 0644 %{SOURCE2} %{buildroot}%{haproxy_confdir}/%{name}.cfg
-%{__install} -p -D -m 0644 %{SOURCE3} %{buildroot}%{_sysconfdir}/logrotate.d/%{name}
-%{__install} -p -D -m 0644 %{SOURCE4} %{buildroot}%{_sysconfdir}/sysconfig/%{name}
+%{__install} -p -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/haproxy.service
+%{__install} -p -D -m 0644 %{SOURCE2} %{buildroot}%{haproxy_confdir}/haproxy.cfg
+%{__install} -p -D -m 0644 %{SOURCE3} %{buildroot}%{_sysconfdir}/logrotate.d/haproxy
+%{__install} -p -D -m 0644 %{SOURCE4} %{buildroot}%{_sysconfdir}/sysconfig/haproxy
 %{__install} -p -D -m 0644 %{SOURCE5} %{buildroot}%{_mandir}/man1/halog.1
 %{__install} -d -m 0755 %{buildroot}%{haproxy_homedir}
 %{__install} -d -m 0755 %{buildroot}%{haproxy_datadir}
@@ -111,13 +111,13 @@ getent passwd %{haproxy_user} >/dev/null || \
 exit 0
 
 %post
-%systemd_post %{name}.service
+%systemd_post haproxy.service
 
 %preun
-%systemd_preun %{name}.service
+%systemd_preun haproxy.service
 
 %postun
-%systemd_postun_with_restart %{name}.service
+%systemd_postun_with_restart haproxy.service
 
 %files
 %defattr(-,root,root,-)
@@ -128,11 +128,11 @@ exit 0
 %dir %{haproxy_confdir}
 %dir %{haproxy_datadir}
 %{haproxy_datadir}/*
-%config(noreplace) %{haproxy_confdir}/%{name}.cfg
-%config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
-%config(noreplace) %{_sysconfdir}/sysconfig/%{name}
-%{_unitdir}/%{name}.service
-%{_sbindir}/%{name}
+%config(noreplace) %{haproxy_confdir}/haproxy.cfg
+%config(noreplace) %{_sysconfdir}/logrotate.d/haproxy
+%config(noreplace) %{_sysconfdir}/sysconfig/haproxy
+%{_unitdir}/haproxy.service
+%{_sbindir}/haproxy
 %{_bindir}/halog
 %{_bindir}/iprange
 %{_mandir}/man1/*
