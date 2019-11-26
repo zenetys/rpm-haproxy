@@ -5,6 +5,7 @@
 %define haproxy_datadir %{_datadir}/haproxy
 
 %global _hardened_build 1
+%global debug_package   %{nil}
 
 Name:           haproxy
 Version:        1.8.15
@@ -32,9 +33,25 @@ BuildRequires:  systemd-devel
 BuildRequires:  systemd-units
 
 Requires(pre):      shadow-utils
+
+%if 0%{?rhel} < 7
+%define __global_ldflags %{nil}
+%define use_systemd      %{nil}
+%endif
+
+%if 0%{?rhel} < 8
+%define build_ldflags    %{nil}
+%endif
+
+%if 0%{?rhel} >= 7
+%define use_systemd      USE_SYSTEMD=1
+
+BuildRequires:      systemd-devel
+BuildRequires:      systemd-units
 Requires(post):     systemd
 Requires(preun):    systemd
 Requires(postun):   systemd
+%endif
 
 %description
 HAProxy is a TCP/HTTP reverse proxy which is particularly suited for high
@@ -123,7 +140,12 @@ exit 0
 %defattr(-,root,root,-)
 %doc doc/* examples/*
 %doc CHANGELOG README ROADMAP VERSION
+%if 0%{?rhel} < 7
+%doc LICENSE
+%endif
+%if 0%{?rhel} >= 7
 %license LICENSE
+%endif
 %dir %{haproxy_homedir}
 %dir %{haproxy_confdir}
 %dir %{haproxy_datadir}
