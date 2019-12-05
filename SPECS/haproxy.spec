@@ -10,8 +10,8 @@
 %global _hardened_build 1
 %global debug_package   %{nil}
 
-Name:           haproxy18z
-Version:        1.8.23
+Name:           haproxy21z
+Version:        2.1.0
 Release:        1%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
 
@@ -19,15 +19,13 @@ Group:          System Environment/Daemons
 License:        GPLv2+
 
 URL:            http://www.haproxy.org/
-Source0:        http://www.haproxy.org/download/1.8/src/haproxy-%{version}.tar.gz
+Source0:        http://www.haproxy.org/download/2.1/src/haproxy-%{version}.tar.gz
 Source1:        haproxy.service
 Source2:        haproxy.cfg
 Source3:        haproxy.logrotate
 Source4:        haproxy.sysconfig
 Source5:        halog.1
 Source6:        http://www.lua.org/ftp/%{liblua}.tar.gz
-Patch0:         bz1664533-fix-handling-priority-flag-HTTP2-decoder.patch
-
 
 BuildRequires:      pcre-devel
 BuildRequires:      zlib-devel
@@ -67,7 +65,6 @@ availability environments. Indeed, it can:
 
 %prep
 %setup -q -n haproxy-%{version}
-%patch0 -p1
 %setup -T -D -a 6 -n haproxy-%{version}
 
 %build
@@ -89,11 +86,13 @@ regparm_opts="USE_REGPARM=1"
 
 %if 0%{?rhel} >= 7
 systemd_opts="USE_SYSTEMD=1"
+setns_opts="USE_NS=1"
 %else
 systemd_opts="USE_SYSTEMD="
+setns_opts="USE_NS="
 %endif
 
-%{__make} %{?_smp_mflags} CPU="generic" TARGET="linux2628" USE_OPENSSL=1 USE_PCRE=1 USE_ZLIB=1 USE_LUA=1 USE_CRYPT_H=1 ${systemd_opts} USE_LINUX_TPROXY=1 USE_GETADDRINFO=1 ${regparm_opts} ADDINC="%{optflags}" ADDLIB="%{__global_ldflags}"
+%{__make} %{?_smp_mflags} CPU="generic" TARGET="linux-glibc" USE_OPENSSL=1 USE_PCRE=1 USE_ZLIB=1 USE_LUA=1 USE_CRYPT_H=1 ${systemd_opts} USE_LINUX_TPROXY=1 USE_GETADDRINFO=1 ${regparm_opts} ${setns_opts} ADDINC="%{optflags}" ADDLIB="%{__global_ldflags}"
 
 pushd contrib/halog
 %{__make} ${halog} OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
@@ -178,6 +177,9 @@ exit 0
 %{_mandir}/man1/*
 
 %changelog
+* Thu Dec 05 2019 Benoit Dolez <bdolez@zenetys.com> - 2.1.0-1
+- Update to upstream version 2.1.0
+
 * Thu Nov 21 2019 Benoit Dolez <bdolez@zenetys.com> - 1.8.23-1
 - Fork from https://git.centos.org/rpms/haproxy/tree/c8
 - Update to 1.8.23
