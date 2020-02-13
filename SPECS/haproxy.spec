@@ -8,8 +8,8 @@
 %global debug_package   %{nil}
 
 Name:           haproxy
-Version:        1.8.15
-Release:        5%{?dist}
+Version:        1.8.23
+Release:        1%{?dist}
 Summary:        HAProxy reverse proxy for high availability environments
 
 Group:          System Environment/Daemons
