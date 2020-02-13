@@ -3,6 +3,9 @@
 %define haproxy_homedir %{_localstatedir}/lib/haproxy
 %define haproxy_confdir %{_sysconfdir}/haproxy
 %define haproxy_datadir %{_datadir}/haproxy
+%define builddir        %{_builddir}/haproxy-%{version}
+
+%define liblua		lua-5.3.5
 
 %global _hardened_build 1
 %global debug_package   %{nil}
@@ -22,14 +25,13 @@ Source2:        haproxy.cfg
 Source3:        haproxy.logrotate
 Source4:        haproxy.sysconfig
 Source5:        halog.1
+Source6:        http://www.lua.org/ftp/%{liblua}.tar.gz
 Patch0:         bz1664533-fix-handling-priority-flag-HTTP2-decoder.patch
 
 
-BuildRequires:      lua53-devel
 BuildRequires:      pcre-devel
 BuildRequires:      zlib-devel
 BuildRequires:      openssl-devel
-BuildRequires:      glibc-common
 
 Requires(pre):      shadow-utils
 
@@ -64,10 +66,22 @@ availability environments. Indeed, it can:
    intercepted from the application
 
 %prep
-%setup -q
+%setup -q -n haproxy-%{version}
 %patch0 -p1
+%setup -T -D -a 6 -n haproxy-%{version}
 
 %build
+
+export CFLAGS="-fPIC"
+
+( cd %{liblua}/src && make liblua.a %{?_smp_mflags} SYSCFLAGS="-DLUA_USE_LINUX -fPIC" SYSLIBS="-Wl,-E")
+
+[[ -e %{liblua}/src/liblua.a ]] || exit 1
+
+export LUA_LIB_NAME=lua
+export LUA_INC="%{builddir}/%{liblua}/src"
+export LUA_LIB="%{builddir}/%{liblua}/src"
+
 regparm_opts=
 %ifarch %ix86 x86_64
 regparm_opts="USE_REGPARM=1"
