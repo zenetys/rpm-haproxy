@@ -7,9 +7,9 @@
 %global _hardened_build 1
 %global debug_package   %{nil}
 
-Name:           haproxy
+Name:           haproxy18z
 Version:        1.8.23
-Release:        1%{?dist}
+Release:        1%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
 
 Group:          System Environment/Daemons
