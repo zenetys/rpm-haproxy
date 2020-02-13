@@ -11,7 +11,7 @@
 %global debug_package   %{nil}
 
 Name:           haproxy21z
-Version:        2.1.0
+Version:        2.1.3
 Release:        1%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
 
@@ -177,6 +177,9 @@ exit 0
 %{_mandir}/man1/*
 
 %changelog
+* Thu Feb 13 2020 Julien Thomas <jthomas@zenetys.com> - 2.1.3-1
+- Update to upstream version 2.1.3
+
 * Thu Dec 05 2019 Benoit Dolez <bdolez@zenetys.com> - 2.1.0-1
 - Update to upstream version 2.1.0
 
