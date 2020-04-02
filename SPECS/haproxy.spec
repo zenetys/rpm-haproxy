@@ -110,7 +110,12 @@ popd
 %{__make} install-bin DESTDIR=%{buildroot} PREFIX=%{_prefix} TARGET="linux2628"
 %{__make} install-man DESTDIR=%{buildroot} PREFIX=%{_prefix}
 
+%if 0%{?rhel} < 7
+%{__install} -p -D -m 0755 ./examples/haproxy.init %{buildroot}%{_initddir}/haproxy
+%else
 %{__install} -p -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/haproxy.service
+%endif
+
 %{__install} -p -D -m 0644 %{SOURCE2} %{buildroot}%{haproxy_confdir}/haproxy.cfg
 %{__install} -p -D -m 0644 %{SOURCE3} %{buildroot}%{_sysconfdir}/logrotate.d/haproxy
 %{__install} -p -D -m 0644 %{SOURCE4} %{buildroot}%{_sysconfdir}/sysconfig/haproxy
@@ -147,13 +152,27 @@ getent passwd %{haproxy_user} >/dev/null || \
 exit 0
 
 %post
+%if 0%{?rhel} < 7
+chkconfig --add haproxy
+%else
 %systemd_post haproxy.service
+%endif
 
 %preun
+%if 0%{?rhel} < 7
+if [ $1 -eq 0 ]; then
+    service haproxy status >/dev/null && service haproxy stop
+    chkconfig --del haproxy
+fi
+%else
 %systemd_preun haproxy.service
+%endif
 
 %postun
+%if 0%{?rhel} < 7
+%else
 %systemd_postun_with_restart haproxy.service
+%endif
 
 %files
 %defattr(-,root,root,-)
@@ -172,7 +191,9 @@ exit 0
 %config(noreplace) %{haproxy_confdir}/haproxy.cfg
 %config(noreplace) %{_sysconfdir}/logrotate.d/haproxy
 %config(noreplace) %{_sysconfdir}/sysconfig/haproxy
-%if 0%{?rhel} >= 7
+%if 0%{?rhel} < 7
+%{_initddir}/haproxy
+%else
 %{_unitdir}/haproxy.service
 %endif
 %{_sbindir}/haproxy
