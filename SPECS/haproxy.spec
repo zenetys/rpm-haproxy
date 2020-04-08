@@ -1,3 +1,6 @@
+%define major			2.1
+%define minor			4
+
 %define haproxy_user    haproxy
 %define haproxy_group   %{haproxy_user}
 %define haproxy_homedir %{_localstatedir}/lib/haproxy
@@ -11,7 +14,7 @@
 %global debug_package   %{nil}
 
 Name:           haproxy21z
-Version:        2.1.3
+Version:        %{major}.%{minor}
 Release:        1%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
 
@@ -19,7 +22,7 @@ Group:          System Environment/Daemons
 License:        GPLv2+
 
 URL:            http://www.haproxy.org/
-Source0:        http://www.haproxy.org/download/2.1/src/haproxy-%{version}.tar.gz
+Source0:        http://www.haproxy.org/download/%{major}/src/haproxy-%{version}.tar.gz
 Source1:        haproxy.service
 Source2:        haproxy.cfg
 Source3:        haproxy.logrotate
@@ -177,6 +180,9 @@ exit 0
 %{_mandir}/man1/*
 
 %changelog
+* Wed Apr 08 2020 Benoit Dolez <bdolez@zenetys.com> - 2.1.4-1
+- Update to upstream version 2.1.4
+
 * Thu Feb 13 2020 Julien Thomas <jthomas@zenetys.com> - 2.1.3-1
 - Update to upstream version 2.1.3
 
