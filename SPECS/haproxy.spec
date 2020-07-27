@@ -1,5 +1,5 @@
-%define major			2.1
-%define minor			4
+%define major			1.8
+%define minor			25
 
 %define haproxy_user    haproxy
 %define haproxy_group   %{haproxy_user}
