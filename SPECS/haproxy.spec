@@ -180,15 +180,6 @@ exit 0
 %{_mandir}/man1/*
 
 %changelog
-* Wed Apr 08 2020 Benoit Dolez <bdolez@zenetys.com> - 2.1.4-1
-- Update to upstream version 2.1.4
-
-* Thu Feb 13 2020 Julien Thomas <jthomas@zenetys.com> - 2.1.3-1
-- Update to upstream version 2.1.3
-
-* Thu Dec 05 2019 Benoit Dolez <bdolez@zenetys.com> - 2.1.0-1
-- Update to upstream version 2.1.0
-
 * Thu Nov 21 2019 Benoit Dolez <bdolez@zenetys.com> - 1.8.23-1
 - Fork from https://git.centos.org/rpms/haproxy/tree/c8
 - Update to 1.8.23
