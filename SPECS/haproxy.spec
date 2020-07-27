@@ -1,5 +1,5 @@
-%define major			2.1
-%define minor			4
+%define major			2.2
+%define minor			1
 
 %define haproxy_user    haproxy
 %define haproxy_group   %{haproxy_user}
@@ -13,7 +13,7 @@
 %global _hardened_build 1
 %global debug_package   %{nil}
 
-Name:           haproxy21z
+Name:           haproxy22z
 Version:        %{major}.%{minor}
 Release:        1%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
