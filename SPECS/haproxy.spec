@@ -80,7 +80,7 @@ export CFLAGS="-fPIC"
 
 export LUA_LIB_NAME=lua
 export LUA_INC="%{builddir}/%{liblua}/src"
-export LUA_LIB="%{builddir}/%{liblua}/src"
+export LUA_LIB="%{builddir}/%{liblua}/src -ldl"
 
 regparm_opts=
 %ifarch %ix86 x86_64
