@@ -13,7 +13,7 @@
 %global _hardened_build 1
 %global debug_package   %{nil}
 
-Name:           haproxy21z
+Name:           haproxy18z
 Version:        %{major}.%{minor}
 Release:        1%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
