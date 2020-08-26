@@ -29,6 +29,7 @@ Source3:        haproxy.logrotate
 Source4:        haproxy.sysconfig
 Source5:        halog.1
 Source6:        http://www.lua.org/ftp/%{liblua}.tar.gz
+Source7:		lua-5.3-luaroot.patch
 
 BuildRequires:      pcre-devel
 BuildRequires:      zlib-devel
@@ -74,7 +75,7 @@ availability environments. Indeed, it can:
 
 export CFLAGS="-fPIC"
 
-( cd %{liblua}/src && make liblua.a %{?_smp_mflags} SYSCFLAGS="-DLUA_USE_LINUX -fPIC" SYSLIBS="-Wl,-E")
+( cd %{liblua}/src && patch -p2 < %{SOURCE7} && make liblua.a %{?_smp_mflags} SYSCFLAGS="-DLUA_USE_LINUX -fPIC" SYSLIBS="-Wl,-E")
 
 [[ -e %{liblua}/src/liblua.a ]] || exit 1
 
