@@ -1,5 +1,5 @@
 %define major			1.8
-%define minor			26
+%define minor			27
 
 %define haproxy_user    haproxy
 %define haproxy_group   %{haproxy_user}
@@ -8,7 +8,7 @@
 %define haproxy_datadir %{_datadir}/haproxy
 %define builddir        %{_builddir}/haproxy-%{version}
 
-%define liblua		lua-5.3.5
+%define liblua		lua-5.3.6
 
 %global _hardened_build 1
 %global debug_package   %{nil}
