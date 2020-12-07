@@ -1,0 +1,398 @@
+#!/bin/bash
+#
+# License: MIT
+# Author: Benoit DOLEZ <bdolez@zenetys.com>
+# Copyright: 2019
+#
+
+function usage() {
+  local IFS=$'\t'
+  exec >&2
+  if [[ $0 == "-bash" ]] ; then return 1 ; fi
+  (( $# > 0 )) && echo "ERROR: $*"
+  version
+  echo "Usage: ${0##*/} [options...] specfile|specdir"
+  echo "Options:"
+  sed -nr "s/^[[:space:]]*## ([^:]*): /\1\t/p" -- "$0" |
+    while read OPT DESC ; do
+      printf " %-20s %s\n" "$OPT" "$DESC"
+    done
+  echo
+  return 0
+}
+
+function version() {
+  local PROGFILE=$0
+  local VERSION=$(sed -n 's/^# Version: //p' $PROGFILE)
+  local AUTHOR=$(sed -n 's/^# Author: //p' $PROGFILE)
+  local LICENSE=$(sed -n 's/^# License: //p' $PROGFILE)
+
+  echo "${PROGFILE##*/}${VERSION:+ $VERSION} - $AUTHOR - $LICENSE"
+}
+
+declare QUIET=$QUIET
+declare VERBOSE=$VERBOSE
+declare XDEBUG=$XDEBUG
+declare ARGS=()
+
+declare CACHEBASE=${CACHEBASE:-/tmp}
+declare DIST=
+declare REPO=$REPO
+declare UPDATE=
+declare KEEP=
+declare NOKEEP=
+declare SOURCEDIR=$SOURCEDIR
+declare OUTPUTDIR=$OUTPUTDIR
+declare PREBUILDSCRIPT=$PREBUILDSCRIPT
+declare DOWNLOAD=1
+declare RPMBUILDOPTS=()
+
+if [[ -n $VERBOSE ]] ; then
+  ( IFS='' ; echo "[DEBUG] '${0}${*/#/' '}'" )
+fi
+
+while (( $# > 0 )); do
+  case "$1" in
+    ## -h, --help: This help
+    -h|--help) usage && exit 0 ;;
+    ## -V, --version: Show version
+    -V|--version) version && exit 0 ;;
+    ## --x-debug: Enable bash debug mode
+    --x-debug)    XDEBUG=1 ;;
+    ## -v, --verbose: Define verbose level (must be repeat)
+    -v|--verbose) ((VERBOSE++)) ;;
+    ## -d, --dist DIST: Define dist version (eg: el8)
+    -d|--dist) DIST=$2 ; shift ;;
+    ## -I, --image IMAGE: Build using a specific docker image
+    -I|--image) IMAGE=$2 ; shift ;;
+    ## -s, --source PATH: define source directory
+    -s|--sourcedir) SOURCEDIR=${2%/} ; shift ;;
+    ## -O, --outputdir PATH: define output directory for generated packages 
+    -O|--outputdir) OUTPUTDIR=${2%/} ; shift ;;
+    ## --no-download: skip downloading sources if needed
+    --no-download) DOWNLOAD=0 ; shift ;;
+    ## --repo PATH: local repository
+    --repo) REPO=$2 ; shift ;;
+    ## --update: update repository with new packages
+    --update) UPDATE=1 ;;
+    ## --keep: keep build environment after build_ldflags
+    --keep) KEEP=1 ;;
+    ## --nokeep: never keep build environment on error
+    --nokeep) NOKEEP=1 ;;
+    # generic args
+    --) shift ; break ;;
+    -*) usage "Unknown parameter '$1'" && exit 1 ;;
+    *) ARGS+=( "$1" ) ;;
+  esac
+  shift
+done
+
+[[ $XDEBUG == 1 ]] && set -x
+
+declare SPECFILE=${ARGS[0]}
+[[ ${SPECFILE:0:1} != "/" ]] && SPECFILE=$PWD/$SPECFILE
+
+# cleanup potential trailing slashes
+SPECFILE=${SPECFILE%${SPECFILE##*[!/]}}
+
+if [[ ! -r $SPECFILE ]] ; then
+  echo "FATAL: can't open $SPECFILE for reading" >&2
+  exit 1
+fi
+
+if [[ -d $SPECFILE ]] ; then
+  if [[ -d $SPECFILE/SPECS ]] ; then
+    SPECFILE=( $SPECFILE/SPECS/*.spec )
+  else
+    SPECFILE=( $SPECFILE/*.spec )
+  fi
+
+  if [[ ${#SPECFILE[@]} != 1 ]]; then
+    echo "FATAL: undefined spec file : '${SPECFILE[*]}' " >&2
+    exit 1
+  fi
+fi
+
+# define SPECDIR & SPECFILE from SPECFILE
+SPECDIR=${SPECFILE%/*}
+SPECFILE=${SPECFILE##*/}
+
+if [[ -z $SOURCEDIR && -d ${SPECDIR%/*}/SOURCES ]] ; then
+  SOURCEDIR=${SPECDIR%/*}/SOURCES
+fi
+
+if [[ -z $PREBUILDSCRIPT ]]; then
+  # auto locate prebuild script if not given
+  if [[ -x $SPECDIR/prebuild.sh ]]; then
+    PREBUILDSCRIPT=$SPECDIR/prebuild.sh
+    PREBUILDSCRIPTFILE=prebuild.sh
+  elif [[ -x ${SPECDIR%/*}/prebuild.sh ]]; then
+    PREBUILDSCRIPT=${SPECDIR%/*}/prebuild.sh
+    PREBUILDSCRIPTFILE=prebuild.sh
+  else
+    PREBUILDSCRIPTFILE=
+  fi
+else
+  if [[ ! -x $PREBUILDSCRIPT ]]; then
+    echo "FATAL: cannot execute prebuild script: $PREBUILDSCRIPT" >&2
+    exit 1
+  fi
+  PREBUILDSCRIPTFILE=${PREBUILDSCRIPT##*/}
+fi
+
+[[ -z $SOURCEDIR ]] && SOURCEDIR=$PWD
+[[ -z $OUTPUTDIR ]] && OUTPUTDIR=$PWD
+[[ ${SOURCEDIR:0:1} != "/" ]] && SOURCEDIR=$PWD/$SOURCEDIR
+[[ ${OUTPUTDIR:0:1} != "/" ]] && OUTPUTDIR=$PWD/$OUTPUTDIR
+[[ -n $REPO && ${REPO:0:1} != "/" ]] && REPO=$PWD/$REPO
+
+echo "SPECFILE: $SPECFILE"
+echo "SPECDIR: $SPECDIR"
+echo "SOURCEDIR: $SOURCEDIR"
+echo "OUTPUTDIR: $OUTPUTDIR"
+echo "PREBUILDSCRIPT: ${PREBUILDSCRIPT:-none}"
+echo "REPO: ${REPO:-none}"
+
+function dockerfile_for_dist_el6() {
+  cat <<'EOF'
+FROM centos:6
+RUN set -x && \
+    yum update -y && \
+    yum install -y createrepo gcc make rpm-build && \
+    echo '* - nproc 2048' >> /etc/security/limits.d/90-nproc.conf && \
+    sed -r -i -e 's/^(keepcache)=.*/\1=1/' /etc/yum.conf && \
+    yum install -y bzip2-devel db4-devel elfutils-devel elfutils-libelf-devel file-devel gawk gettext-devel libacl-devel libcap-devel libtool lua-devel ncurses-devel nss-devel nss-softokn-freebl-devel popt-devel python-devel readline-devel redhat-rpm-config xz-devel zlib-devel && \
+    { curl -OL --connect-timeout 15 http://ftp.rpm.org/releases/rpm-4.11.x/rpm-4.11.3.tar.bz2 || \
+      curl -OL --connect-timeout 15 http://ftp.lip6.fr/pub/linux/rpm/releases/rpm-4.11.x/rpm-4.11.3.tar.bz2; } && \
+    tar xvjf rpm-4.11.3.tar.bz2 && \
+    cd rpm-4.11.3 && \
+    export CFLAGS=$(rpm -E '%{optflags}') && \
+    export CPPFLAGS="$(pkg-config --cflags nss) -USYSCONFDIR -DSYSCONFDIR=\\\"/etc\\\" -ULOCALSTATEDIR -DLOCALSTATEDIR=\\\"/var\\\" -URPMCONFIGDIR -DRPMCONFIGDIR=\\\"/usr/lib/rpm\\\" -URPMCONFIGDIR -DRPMCONFIGDIR=\\\"/usr/lib/rpm\\\"" && \
+    autoreconf -i && \
+    ./configure --enable-static=yes --enable-shared=no --build=x86_64-redhat-linux-gnu --host=x86_64-redhat-linux-gnu --with-vendor=redhat --with-external-db --with-lua --with-cap --with-acl --without-selinux --disable-python --disable-plugins --disable-nls && \
+    make && \
+    cp -a rpmspec /usr/local/bin/ && \
+    cd .. && \
+    rm -rfv rpm-4.11.3.tar.bz2 rpm-4.11.3 && \
+    yum history undo -y $(yum history |awk '$1 ~ /^[0-9]$/ { print $1; exit; }') && \
+    yum clean all
+EOF
+}
+
+function dockerfile_for_dist_el7() {
+  cat <<'EOF'
+FROM centos:7
+RUN set -x && \
+    yum update -y && \
+    yum install -y createrepo gcc make rpm-build && \
+    echo '* - nproc 2048' >> /etc/security/limits.d/90-nproc.conf && \
+    sed -r -i -e 's/^(keepcache)=.*/\1=1/' /etc/yum.conf && \
+    yum clean all
+EOF
+}
+
+function dockerfile_for_dist_el8() {
+  cat <<'EOF'
+FROM centos:8
+RUN set -x && \
+    yum update -y && \
+    yum install -y createrepo gcc make rpm-build && \
+    echo '* - nproc 2048' >> /etc/security/limits.d/90-nproc.conf && \
+    echo keepcache=1 >> /etc/yum.conf && \
+    echo keepcache=1 >> /etc/dnf/dnf.conf && \
+    sed -i -re s,enabled=0,enabled=1, /etc/yum.repos.d/CentOS-PowerTools.repo && \
+    yum clean all
+EOF
+}
+
+# Lookup "docker build" source to build a base image for $DIST.
+function dockerfile_for_dist() {
+  if [[ -f ~/.config/${0##*/}/Dockerfile.$DIST ]]; then
+    cat ~/.config/"${0##*/}/Dockerfile.$DIST"
+  elif declare -f -F "dockerfile_for_dist_$DIST" >/dev/null; then
+    "dockerfile_for_dist_$DIST"
+  else
+    return 1
+  fi
+}
+
+if [[ -z $IMAGE ]]; then
+  if [[ -z $DIST ]]; then
+    echo "FATAL: require -d DIST or -I IMAGE (or both)" >&2
+    exit 1
+  fi
+  # Set $IMAGE from $DIST
+  if ! image_src=$(dockerfile_for_dist); then
+    echo "FATAL: no image source for $DIST" >&2
+    exit 1
+  fi
+  image_sig=$(echo "$image_src" |md5sum |sed -re 's,^(.{7}).*,\1,')
+  IMAGE="rpmbuild/$DIST:$image_sig"
+  # Build docker image
+  if ! docker images -q "$IMAGE" |grep -q . &&
+     ! echo "$image_src" |docker build -t "$IMAGE" -; then
+    echo "FATAL: failed to build image $IMAGE for $DIST" >&2
+    exit 1
+  fi
+elif [[ -z $DIST ]]; then
+  # Set $DIST from $IMAGE
+  DIST=$(docker run --rm "$IMAGE" rpm -E '%{dist}' |sed 's,^\.\+,,')
+  if [[ -z $DIST ]]; then
+    echo "FATAL: failed to identify dist in image $IMAGE" >&2
+    exit 1
+  fi
+fi
+
+# Extract type and version from $DIST for convenience
+DIST_VERSION=${DIST##*[!0-9]}
+DIST_TYPE=${DIST%$DIST_VERSION}
+
+echo "DIST: $DIST"
+echo "DIST_TYPE: $DIST_TYPE"
+echo "DIST_VERSION: $DIST_VERSION"
+echo "IMAGE: $IMAGE"
+
+# Create missing directories
+for i in "$CACHEBASE"/cache-{yum-"$DIST",shared} \
+         "$OUTPUTDIR"/{RPMS,SRPMS} \
+         ${REPO:+"$REPO"}; do
+  if [[ ! -d $i ]] && ! mkdir -p "$i"; then
+    echo "FATAL: cannot create directory: $i" >&2
+    exit 1
+  fi
+done
+
+# Need rpmbuild --noclean option to keep generated files in place
+if [[ $DIST_TYPE == el && $DIST_VERSION -ge 7 ]] ||
+   docker run --rm "$IMAGE" rpm --noclean >/dev/null 2>&1
+then
+  RPMBUILDOPTS+=( --noclean )
+fi
+
+# Options for docker
+DOCKER_OPTS=(
+  --tmpfs /tmp:rw,exec
+  --mount "type=bind,src=$SPECDIR/$SPECFILE,dst=/tmp/$SPECFILE"
+  --mount "type=bind,src=$CACHEBASE/cache-yum-$DIST,dst=/var/cache/yum"
+  --mount "type=bind,src=$CACHEBASE/cache-yum-$DIST,dst=/var/cache/dnf"
+  --mount "type=bind,src=$CACHEBASE/cache-shared,dst=/tmp/cache-shared"
+  --mount "type=bind,src=$SOURCEDIR,dst=/tmp/SOURCES"
+  --mount "type=bind,src=$OUTPUTDIR/SRPMS,dst=/tmp/SRPMS"
+  --mount "type=bind,src=$OUTPUTDIR/RPMS,dst=/tmp/RPMS"
+)
+
+if [[ -n $REPO ]] ; then
+  DOCKER_OPTS+=( --mount "type=bind,src=$REPO,dst=/tmp/local-repo" )
+fi
+
+if [[ -n $PREBUILDSCRIPT ]] ; then
+  DOCKER_OPTS+=( --mount "type=bind,src=$PREBUILDSCRIPT,dst=/tmp/$PREBUILDSCRIPTFILE" )
+fi
+
+# Prepare env and script to be run inside the container
+BGROUP=$(id -gn)
+BUSER=${USER:-$(id -un)}
+BHOME=~
+
+function build_exit() {
+  local status=${1:-0}
+  [[ -n $NOKEEP ]] && exit "$status"
+  [[ -n $KEEP || $status != 0 ]] && sleep infinity
+  exit "$status"
+}
+function build_runas() {
+  printf -v qcmd "%q " "${@:2}"
+  runuser -l "$1" -c "$qcmd"
+}
+function build_dl() {
+  local curlopts=( -fRL --connect-timeout 15 ) url=$1 dest=${2:-$CACHEDIR} retval
+  if [[ $url =~ ^([^#]+)(#?)/([^/]+)$ ]]; then
+    [[ -f $dest/${BASH_REMATCH[3]} ]] && return 0
+    [[ ${BASH_REMATCH[2]} == '#' ]] && url=${BASH_REMATCH[1]}
+    ${RUNAS:+build_runas "$RUNAS" }\
+      curl "${curlopts[@]}" -o "$dest/${BASH_REMATCH[3]}" "$url"
+    retval=$?
+    REPLY="cURL return code $retval"
+    return "$retval"
+  else
+    REPLY='URL not supported'
+    return 1
+  fi
+}
+function build_main() {
+  set -fx
+  OIFS=$IFS
+
+  mkdir -p "$BHOME"
+  chown "$BUSER:$BGROUP" "$BHOME"
+
+  if [[ -n "$REPO" ]]; then
+    cat >/etc/yum.repos.d/local-repo.repo <<'EOF'
+[local-repo]
+name=local-repo
+baseurl=file:///tmp/local-repo/RPMS
+enabled=1
+gpgcheck=0
+EOF
+    if [[ ! -d /tmp/local-repo/RPMS/repodata ]]; then
+      build_runas "$BUSER" mkdir -p /tmp/local-repo/RPMS
+      build_runas "$BUSER" createrepo /tmp/local-repo/RPMS
+    fi
+  fi
+
+  if [[ -n $PREBUILDSCRIPTFILE ]] ; then
+    "/tmp/$PREBUILDSCRIPTFILE" || build_exit $?
+  fi
+
+  IFS=$'\n'
+  buildreq=( $(rpmspec -P "/tmp/$SPECFILE" |
+    sed -ne 's/^BuildRequires: *//p' |
+    sed -re 's/(( +[^ ,]|[^ ,])*),/\1\n/g' |
+    sed -re 's/^ *([^ ]( +[^ ]|[^ ])*) *$/\1/') )
+  IFS=$OIFS
+  if [[ -n $buildreq ]]; then
+    yum install -y "${buildreq[@]}" || build_exit $?
+  fi
+
+  # download sources if needed
+  if [[ $DOWNLOAD == 1 ]] ; then
+    dlsources=( $(rpmspec -P "/tmp/$SPECFILE" |
+      sed -nr -e 's,^(source|patch)[0-9]*\s*:\s*(\S+).*,\2,i;T;/:\/\//p') )
+    for i in "${dlsources[@]}"; do
+        RUNAS="$BUSER" build_dl "$i" /tmp/SOURCES || build_exit $?
+    done
+  fi
+
+  # Having _topdir /tmp causes problems in el6/el7 because it is not long enough
+  # https://access.redhat.com/solutions/1426113
+  build_runas "$BUSER" rpmbuild --define '_topdir /tmp/../tmp/../tmp' \
+    --define "dist .$DIST" "${RPMBUILDOPTS[@]}" -ba "/tmp/$SPECFILE" ||
+      build_exit $?
+
+  if [[ -n $REPO && -n $UPDATE ]] ; then
+    for repo in RPMS SRPMS; do
+      build_runas "$BUSER" cp -aT "/tmp/$repo/" "/tmp/local-repo/$repo/"
+      build_runas "$BUSER" createrepo --update "/tmp/local-repo/$repo"
+    done
+  fi
+  build_exit 0
+}
+
+# Build RPM in the container
+CTNAME="build_${RANDOM}${RANDOM}${RANDOM}${RANDOM}"
+DOCKER_OPTS+=( --name "$CTNAME" -i --rm )
+trap 'docker kill "$CTNAME"; exit;' INT
+cat <<__EOF__ |docker run "${DOCKER_OPTS[@]}" "$IMAGE" /bin/bash &
+$(declare -p BGROUP BHOME BUSER DIST DIST_TYPE DIST_VERSION DOWNLOAD KEEP NOKEEP PREBUILDSCRIPTFILE REPO RPMBUILDOPTS SPECFILE UPDATE)
+$(declare -f build_exit)
+$(declare -f build_runas)
+$(declare -f build_dl)
+$(declare -f build_main)
+echo "$(getent group "$BGROUP")" >> /etc/group
+echo "$(getent passwd "$BUSER")" >> /etc/passwd
+# exports for prebuild script
+export -f build_dl build_runas
+export CACHEDIR=/tmp/cache-shared DIST DIST_TYPE DIST_VERSION
+build_main
+__EOF__
+wait "$!"
