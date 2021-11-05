@@ -1,8 +1,8 @@
 # Initially forked from https://git.centos.org/rpms/haproxy/tree/c8
 # by Benoit Dolez <bdolez at zenetys.com>
 
-%define major			2.3
-%define minor			15
+%define major			2.4
+%define minor			8
 
 %define haproxy_user    haproxy
 %define haproxy_group   %{haproxy_user}
@@ -16,7 +16,7 @@
 %global _hardened_build 1
 %global debug_package   %{nil}
 
-Name:           haproxy23z
+Name:           haproxy24z
 Version:        %{major}.%{minor}
 Release:        1%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
@@ -101,13 +101,9 @@ setns_opts="USE_NS="
 
 %{__make} %{?_smp_mflags} CPU="generic" TARGET="linux-glibc" USE_OPENSSL=1 USE_PCRE=1 USE_ZLIB=1 USE_LUA=1 USE_CRYPT_H=1 ${systemd_opts} USE_LINUX_TPROXY=1 USE_GETADDRINFO=1 ${regparm_opts} ${setns_opts} ADDINC="%{optflags}" ADDLIB="%{__global_ldflags}"
 
-pushd contrib/halog
-%{__make} ${halog} OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
-popd
+%{__make} admin/halog/halog OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
 
-pushd contrib/iprange
-%{__make} ${iprange} OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
-popd
+%{__make} admin/iprange/iprange OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
 
 %install
 %{__make} install-bin DESTDIR=%{buildroot} PREFIX=%{_prefix} TARGET="linux2628"
@@ -126,8 +122,8 @@ popd
 %{__install} -d -m 0755 %{buildroot}%{haproxy_homedir}
 %{__install} -d -m 0755 %{buildroot}%{haproxy_datadir}
 %{__install} -d -m 0755 %{buildroot}%{_bindir}
-%{__install} -p -m 0755 ./contrib/halog/halog %{buildroot}%{_bindir}/halog
-%{__install} -p -m 0755 ./contrib/iprange/iprange %{buildroot}%{_bindir}/iprange
+%{__install} -p -m 0755 ./admin/halog/halog %{buildroot}%{_bindir}/halog
+%{__install} -p -m 0755 ./admin/iprange/iprange %{buildroot}%{_bindir}/iprange
 %{__install} -p -m 0644 ./examples/errorfiles/* %{buildroot}%{haproxy_datadir}
 
 for httpfile in $(find ./examples/errorfiles/ -type f)
