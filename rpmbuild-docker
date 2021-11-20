@@ -200,7 +200,7 @@ RUN set -x && \
     echo '* - nproc 2048' >> /etc/security/limits.d/90-nproc.conf && \
     echo keepcache=1 >> /etc/yum.conf && \
     echo keepcache=1 >> /etc/dnf/dnf.conf && \
-    sed -i -re s,enabled=0,enabled=1, /etc/yum.repos.d/CentOS-PowerTools.repo && \
+    sed -i -re s,enabled=0,enabled=1, /etc/yum.repos.d/CentOS*-PowerTools.repo && \
     yum clean all
 EOF
 }
