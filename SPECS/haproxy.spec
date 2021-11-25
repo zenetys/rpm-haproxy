@@ -2,7 +2,7 @@
 # by Benoit Dolez <bdolez at zenetys.com>
 
 %define major			2.4
-%define minor			8
+%define minor			9
 
 %define haproxy_user    haproxy
 %define haproxy_group   %{haproxy_user}
@@ -33,6 +33,8 @@ Source4:        haproxy.sysconfig
 Source5:        halog.1
 Source6:        http://www.lua.org/ftp/%{liblua}.tar.gz
 Source7:		lua-5.3-luaroot.patch
+
+Patch100:		haproxy-2.4.9-fix-compilation-without-SSL-or-alpn.patch
 
 BuildRequires:      pcre-devel
 BuildRequires:      zlib-devel
@@ -73,6 +75,7 @@ availability environments. Indeed, it can:
 %prep
 %setup -q -n haproxy-%{version}
 %setup -T -D -a 6 -n haproxy-%{version}
+%patch100 -p1
 
 %build
 
