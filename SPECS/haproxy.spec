@@ -1,8 +1,8 @@
 # Initially forked from https://git.centos.org/rpms/haproxy/tree/c8
 # by Benoit Dolez <bdolez at zenetys.com>
 
-%define major			2.4
-%define minor			13
+%define major			2.5
+%define minor			4
 
 %define haproxy_user    haproxy
 %define haproxy_group   %{haproxy_user}
@@ -16,7 +16,7 @@
 %global _hardened_build 1
 %global debug_package   %{nil}
 
-Name:           haproxy24z
+Name:           haproxy25z
 Version:        %{major}.%{minor}
 Release:        1%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
@@ -33,6 +33,11 @@ Source4:        haproxy.sysconfig
 Source5:        halog.1
 Source6:        http://www.lua.org/ftp/%{liblua}.tar.gz
 Source7:		lua-5.3-luaroot.patch
+
+%if 0%{?rhel} <= 6
+# Fix build issue on EL6 due to old OpenSSL and GCC
+Patch0:         haproxy-2.5.4-el6-build.patch
+%endif
 
 BuildRequires:      pcre-devel
 BuildRequires:      zlib-devel
@@ -72,6 +77,10 @@ availability environments. Indeed, it can:
 
 %prep
 %setup -q -n haproxy-%{version}
+%if 0%{?rhel} <= 6
+%patch0 -p0 -b .el6-build
+%endif
+
 %setup -T -D -a 6 -n haproxy-%{version}
 
 %build

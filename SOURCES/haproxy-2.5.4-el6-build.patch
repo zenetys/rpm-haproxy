@@ -1,0 +1,22 @@
+--- ./include/haproxy/atomic.h.ori	2022-02-25 16:10:16.000000000 +0000
++++ ./include/haproxy/atomic.h	2022-02-28 11:44:28.749715239 +0000
+@@ -196,7 +196,7 @@
+ 
+ #define HA_ATOMIC_LOAD(val)						\
+         ({								\
+-	        typeof(*(val)) ret;					\
++	        typeof(*(val) + 0) ret;					\
+ 		__sync_synchronize();					\
+ 		ret = *(volatile typeof(val))val;			\
+ 		__sync_synchronize();					\
+--- ./include/haproxy/openssl-compat.h.ori	2022-02-25 16:10:16.000000000 +0000
++++ ./include/haproxy/openssl-compat.h	2022-02-28 11:26:41.957033770 +0000
+@@ -154,7 +154,7 @@
+ #endif
+ 
+ 
+-#if (HA_OPENSSL_VERSION_NUMBER < 0x1000200fL) && (LIBRESSL_VERSION_NUMBER < 0x2070500fL)
++#if (HA_OPENSSL_VERSION_NUMBER < 0x1000200fL) && (!defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER < 0x2070500fL)
+ /* introduced in openssl 1.0.2 */
+ 
+ static inline STACK_OF(X509) *X509_chain_up_ref(STACK_OF(X509) *chain)
