@@ -35,8 +35,9 @@ Source6:        http://www.lua.org/ftp/%{liblua}.tar.gz
 Source7:		lua-5.3-luaroot.patch
 
 %if 0%{?rhel} <= 6
-# Fix build issue on EL6 due to old OpenSSL and GCC
-Patch0:         haproxy-2.5.4-el6-build.patch
+# Fix build issue on EL6
+Patch0:         BUILD-atomic-make-the-old-HA_ATOMIC_LOAD-support.patch
+Patch1:         BUILD-ssl-another-build-warning-on-LIBRESSL_VERSION_NUMBER.patch
 %endif
 
 BuildRequires:      pcre-devel
@@ -78,7 +79,8 @@ availability environments. Indeed, it can:
 %prep
 %setup -q -n haproxy-%{version}
 %if 0%{?rhel} <= 6
-%patch0 -p0 -b .el6-build
+%patch0 -p1
+%patch1 -p1
 %endif
 
 %setup -T -D -a 6 -n haproxy-%{version}
