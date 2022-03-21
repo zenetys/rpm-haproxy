@@ -1,5 +1,5 @@
 %define major			2.3
-%define minor			18
+%define minor			19
 
 %define haproxy_user    haproxy
 %define haproxy_group   %{haproxy_user}
@@ -15,7 +15,7 @@
 
 Name:           haproxy23z
 Version:        %{major}.%{minor}
-Release:        2%{?dist}.zenetys
+Release:        1%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
 
 Group:          System Environment/Daemons
