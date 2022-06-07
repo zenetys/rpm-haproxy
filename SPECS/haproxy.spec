@@ -33,7 +33,7 @@ Source4:        haproxy.sysconfig
 Source5:        halog.1
 
 Source100:      http://www.lua.org/ftp/%{liblua}.tar.gz
-Source101:      lua-5.3-luaroot.patch
+Patch100:       lua-5.3-luaroot.patch
 
 BuildRequires:      pcre-devel
 BuildRequires:      zlib-devel
@@ -75,12 +75,17 @@ availability environments. Indeed, it can:
 %setup -q -n haproxy-%{version}
 
 %setup -T -D -a 100 -n haproxy-%{version}
+cd %{liblua}
+%patch100 -p1 -b .lua-path
+cd ..
 
 %build
 
 export CFLAGS="-fPIC"
 
-( cd %{liblua}/src && patch -p2 < %{SOURCE101} && make liblua.a %{?_smp_mflags} SYSCFLAGS="-DLUA_USE_LINUX -fPIC" SYSLIBS="-Wl,-E" )
+cd %{liblua}/src
+make liblua.a %{?_smp_mflags} SYSCFLAGS="-DLUA_USE_LINUX -fPIC" SYSLIBS="-Wl,-E"
+cd ../..
 
 [[ -e %{liblua}/src/liblua.a ]] || exit 1
 
