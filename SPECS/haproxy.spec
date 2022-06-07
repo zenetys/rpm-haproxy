@@ -12,11 +12,13 @@
 %define builddir        %{_builddir}/haproxy-%{version}
 
 %define liblua          lua-5.3.6
+%define libssl          openssl-3.0.3+quic
+%define libssl_extract  openssl-%(echo %{libssl} |sed 's,+,-,')
 
 %global _hardened_build 1
 %global debug_package   %{nil}
 
-Name:           haproxy26z
+Name:           haproxy26z+quic
 Version:        %{major}.%{minor}
 Release:        1%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
@@ -30,13 +32,17 @@ Source2:        haproxy.cfg
 Source3:        haproxy.logrotate
 Source4:        haproxy.sysconfig
 Source5:        halog.1
+Patch0:         haproxy-2.6.0-ssl-path.patch
 
 Source100:      http://www.lua.org/ftp/%{liblua}.tar.gz
 Patch100:       lua-5.3-luaroot.patch
 
+Source200:      https://github.com/quictls/openssl/archive/refs/heads/%{libssl}.tar.gz
+
 BuildRequires:      pcre-devel
+BuildRequires:      perl-Data-Dumper
+BuildRequires:      perl-IPC-Cmd
 BuildRequires:      zlib-devel
-BuildRequires:      openssl-devel
 
 Requires(pre):      shadow-utils
 
@@ -73,6 +79,7 @@ availability environments. Indeed, it can:
 %prep
 # haproxy
 %setup -q -n haproxy-%{version}
+%patch0 -p1 -b .makefile-ssl-path
 
 # lua
 %setup -T -D -a 100 -n haproxy-%{version}
@@ -80,6 +87,8 @@ cd %{liblua}
 %patch100 -p1 -b .lua-path
 cd ..
 
+# openssl
+%setup -T -D -a 200 -n haproxy-%{version}
 
 %build
 # lua
@@ -92,6 +101,18 @@ cd ../..
 export LUA_LIB_NAME=lua
 export LUA_INC="%{builddir}/%{liblua}/src"
 export LUA_LIB="%{builddir}/%{liblua}/src"
+
+# openssl
+cd %{libssl_extract}
+./config no-shared
+make %{?_smp_mflags}
+cd ..
+
+[[ -e %{libssl_extract}/libssl.a ]] || exit 1
+[[ -e %{libssl_extract}/libcrypto.a ]] || exit 1
+
+export SSL_INC="%{builddir}/%{libssl_extract}/include"
+export SSL_LIB="%{builddir}/%{libssl_extract}"
 
 # haproxy
 cpu_opts=
@@ -110,7 +131,7 @@ setns_opts="USE_NS="
 %{__make} \
     %{?_smp_mflags} \
     CPU="generic" TARGET="linux-glibc" \
-    USE_OPENSSL=1 USE_PCRE=1 USE_ZLIB=1 USE_LUA=1 \
+    USE_OPENSSL=1 USE_PCRE=1 USE_ZLIB=1 USE_LUA=1 USE_QUIC=1 \
     USE_CRYPT_H=1 \
     USE_LINUX_TPROXY=1 \
     USE_GETADDRINFO=1 \
