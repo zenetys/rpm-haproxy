@@ -81,8 +81,6 @@ cd ..
 
 %build
 
-export CFLAGS="-fPIC"
-
 cd %{liblua}/src
 make liblua.a %{?_smp_mflags} SYSCFLAGS="-DLUA_USE_LINUX -fPIC" SYSLIBS="-Wl,-E"
 cd ../..
