@@ -23,16 +23,17 @@ Summary:        HAProxy reverse proxy for high availability environments
 
 Group:          System Environment/Daemons
 License:        GPLv2+
-
 URL:            http://www.haproxy.org/
+
 Source0:        http://www.haproxy.org/download/%{major}/src/haproxy-%{version}.tar.gz
 Source1:        haproxy.service
 Source2:        haproxy.cfg
 Source3:        haproxy.logrotate
 Source4:        haproxy.sysconfig
 Source5:        halog.1
-Source6:        http://www.lua.org/ftp/%{liblua}.tar.gz
-Source7:        lua-5.3-luaroot.patch
+
+Source100:      http://www.lua.org/ftp/%{liblua}.tar.gz
+Source101:      lua-5.3-luaroot.patch
 
 BuildRequires:      pcre-devel
 BuildRequires:      zlib-devel
@@ -73,13 +74,13 @@ availability environments. Indeed, it can:
 %prep
 %setup -q -n haproxy-%{version}
 
-%setup -T -D -a 6 -n haproxy-%{version}
+%setup -T -D -a 100 -n haproxy-%{version}
 
 %build
 
 export CFLAGS="-fPIC"
 
-( cd %{liblua}/src && patch -p2 < %{SOURCE7} && make liblua.a %{?_smp_mflags} SYSCFLAGS="-DLUA_USE_LINUX -fPIC" SYSLIBS="-Wl,-E")
+( cd %{liblua}/src && patch -p2 < %{SOURCE101} && make liblua.a %{?_smp_mflags} SYSCFLAGS="-DLUA_USE_LINUX -fPIC" SYSLIBS="-Wl,-E" )
 
 [[ -e %{liblua}/src/liblua.a ]] || exit 1
 
