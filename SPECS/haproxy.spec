@@ -72,15 +72,18 @@ availability environments. Indeed, it can:
    intercepted from the application
 
 %prep
+# haproxy
 %setup -q -n haproxy-%{version}
 
+# lua
 %setup -T -D -a 100 -n haproxy-%{version}
 cd %{liblua}
 %patch100 -p1 -b .lua-path
 cd ..
 
-%build
 
+%build
+# lua
 cd %{liblua}/src
 make liblua.a %{?_smp_mflags} SYSCFLAGS="-DLUA_USE_LINUX -fPIC" SYSLIBS="-Wl,-E"
 cd ../..
@@ -91,6 +94,7 @@ export LUA_LIB_NAME=lua
 export LUA_INC="%{builddir}/%{liblua}/src"
 export LUA_LIB="%{builddir}/%{liblua}/src"
 
+# haproxy
 cpu_opts=
 %if 0%{?rhel} <= 6
 cpu_opts="CPU_CFLAGS=-O2 -fno-strict-aliasing"
