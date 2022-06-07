@@ -1,8 +1,8 @@
 # Initially forked from https://git.centos.org/rpms/haproxy/tree/c8
 # by Benoit Dolez <bdolez at zenetys.com>
 
-%define major			2.6
-%define minor			0
+%define major           2.6
+%define minor           0
 
 %define haproxy_user    haproxy
 %define haproxy_group   %{haproxy_user}
@@ -11,7 +11,7 @@
 %define haproxy_datadir %{_datadir}/haproxy
 %define builddir        %{_builddir}/haproxy-%{version}
 
-%define liblua		lua-5.3.6
+%define liblua          lua-5.3.6
 
 %global _hardened_build 1
 %global debug_package   %{nil}
@@ -32,7 +32,7 @@ Source3:        haproxy.logrotate
 Source4:        haproxy.sysconfig
 Source5:        halog.1
 Source6:        http://www.lua.org/ftp/%{liblua}.tar.gz
-Source7:		lua-5.3-luaroot.patch
+Source7:        lua-5.3-luaroot.patch
 
 BuildRequires:      pcre-devel
 BuildRequires:      zlib-devel
