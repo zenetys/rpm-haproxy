@@ -122,7 +122,6 @@ setns_opts="USE_NS="
     ADDLIB="%{__global_ldflags}"
 
 %{__make} admin/halog/halog OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
-
 %{__make} admin/iprange/iprange OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
 
 %install
