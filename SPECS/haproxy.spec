@@ -95,11 +95,6 @@ export LUA_LIB_NAME=lua
 export LUA_INC="%{builddir}/%{liblua}/src"
 export LUA_LIB="%{builddir}/%{liblua}/src"
 
-regparm_opts=
-%ifarch %ix86 x86_64
-regparm_opts="USE_REGPARM=1"
-%endif
-
 cpu_opts=
 %if 0%{?rhel} <= 6
 cpu_opts="CPU_CFLAGS=-O2 -fno-strict-aliasing"
@@ -121,7 +116,6 @@ setns_opts="USE_NS="
     USE_LINUX_TPROXY=1 \
     USE_GETADDRINFO=1 \
     ${systemd_opts:+"$systemd_opts"} \
-    ${regparm_opts:+"$regparm_opts"} \
     ${setns_opts:+"$setns_opts"} \
     ${cpu_opts:+"$cpu_opts"} \
     ADDINC="%{optflags}" \
