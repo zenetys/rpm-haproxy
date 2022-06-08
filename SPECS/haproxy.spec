@@ -33,6 +33,7 @@ Source3:        haproxy.logrotate
 Source4:        haproxy.sysconfig
 Source5:        halog.1
 Patch0:         haproxy-2.6.0-ssl-path.patch
+Patch1:         haproxy-quic-fix-anonymous-union-for-gcc-4.4.patch
 
 Source100:      http://www.lua.org/ftp/%{liblua}.tar.gz
 Patch100:       lua-5.3-luaroot.patch
@@ -80,6 +81,7 @@ availability environments. Indeed, it can:
 # haproxy
 %setup -q -n haproxy-%{version}
 %patch0 -p1 -b .makefile-ssl-path
+%patch1 -p1 -b .quic-anonymous-union
 
 # lua
 %setup -T -D -a 100 -n haproxy-%{version}
