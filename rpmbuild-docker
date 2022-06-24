@@ -157,6 +157,7 @@ function dockerfile_for_dist_el6() {
   cat <<'EOF'
 FROM centos:6
 RUN set -x && \
+    sed -i -re 's,mirror\.centos\.org,vault.centos.org,; s,^(mirrorlist),#\1,; s,^#(baseurl),\1,' /etc/yum.repos.d/CentOS-*.repo && \
     yum update -y && \
     yum install -y createrepo gcc make rpm-build && \
     echo '* - nproc 2048' >> /etc/security/limits.d/90-nproc.conf && \
