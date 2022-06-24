@@ -26,7 +26,6 @@ License:        GPLv2+
 URL:            http://www.haproxy.org/
 
 Source0:        http://www.haproxy.org/download/%{major}/src/haproxy-%{version}.tar.gz
-Source1:        haproxy.service
 Source2:        haproxy.cfg
 Source3:        haproxy.logrotate
 Source4:        haproxy.sysconfig
@@ -131,6 +130,7 @@ setns_opts="USE_NS="
 
 %{__make} admin/halog/halog OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
 %{__make} admin/iprange/iprange OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
+%{__make} -C admin/systemd PREFIX=/usr
 
 %install
 %{__make} install-bin DESTDIR=%{buildroot} PREFIX=%{_prefix} TARGET="linux2628"
@@ -139,7 +139,7 @@ setns_opts="USE_NS="
 %if 0%{?rhel} < 7
 %{__install} -p -D -m 0755 ./examples/haproxy.init %{buildroot}%{_initddir}/haproxy
 %else
-%{__install} -p -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/haproxy.service
+%{__install} -p -D -m 0644 admin/systemd/haproxy.service %{buildroot}%{_unitdir}/haproxy.service
 %endif
 
 %{__install} -p -D -m 0644 %{SOURCE2} %{buildroot}%{haproxy_confdir}/haproxy.cfg
