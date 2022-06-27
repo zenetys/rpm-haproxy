@@ -1,0 +1,154 @@
+#!/bin/bash
+#
+# License: MIT
+# Author: Benoit DOLEZ <bdolez@zenetys.com>
+# Copyright: 2019
+#
+
+set -o pipefail
+PROGNAME=${0##*/}
+SUFFIX="(tar\\.gz|tgz|tar\\.xz|tar\\.bz2|tbz|zip|(src\\.)?rpm)"
+CACHEDIR=${CACHEDIR:-/tmp/$PROGNAME}
+
+curlopts=( --connect-timeout 10 -fLs --netrc-optional )
+
+function curl_github_api_pages() {
+  local pages p
+  pages=$(set -o pipefail; curl "${curlopts[@]}" -I "$1?per_page=100" |
+    sed -nre 's,^link:.*[?&]page=([0-9]+)>; rel="last".*,\1,p') || return $?
+  if [[ -z $pages ]]; then
+    curl "${curlopts[@]}" "$1"
+  else
+    for (( p = 1; p <= pages; p++ )); do
+      curl "${curlopts[@]}" "$1?per_page=100&page=$p"
+      sleep 1
+    done
+  fi
+}
+
+function get-data-lynx() {
+  local url=$1 ; shift
+  lynx -dump "$url" | sed -n -r -e 's/^[ 0-9]+\. //p'
+}
+
+function get-data-json() {
+  local url=$1 ; shift
+  if [[ $url == https://api.github.com/* ]]; then
+    curl_github_api_pages "$url"
+  else
+    curl "${curlopts[@]}" "$url"
+  fi |jq . |grep -Pio '(?<=")[a-z+]+://[^"]+'
+}
+
+function get-data() {
+  local method=$1 ; shift
+  if declare -F -f "$FUNCNAME-$method"; then
+    "$FUNCNAME-$method" "$@" || return 1
+  else
+    return 1
+  fi
+}
+
+function check-updates() {
+  local base=$1 ; shift
+  local current=$1 ; shift
+  local method=$1 ; shift
+  local url=$1 ; shift
+  local vpattern="${1:-[0-9.]+}"
+  local pattern=$1 ; shift
+  local rewrite=${1:-"\2\t\1"} ; shift
+  local source version last current
+  # pattern need to respect this
+  #   $1 : PATH
+  #   $2 : FILE
+  #   $3 : SUFFIX
+  if [[ -z $url ]]; then
+    echo "[FATAL] need at least an url" >&2
+    exit 1
+  fi
+  if [[ -z $base ]]; then
+    base=${url##*/}
+    url=${url%/*}
+    base=${base%%-[0-9]*}
+  fi
+  if [[ -z $pattern ]]; then
+    pattern=".*/($base-($vpattern)\\.$SUFFIX)"
+  elif [[ ${pattern:0:1} == "-" ]]; then
+    pattern=".*/($base-($pattern)\\.$SUFFIX)"
+  elif [[ ${pattern:0:1} == "/" ]] ; then
+    s=$pattern
+    pattern=".*/${s%/*}/(${s##*/}\\.$SUFFIX)"
+  elif [[ ${pattern:0:1} == "=" ]]; then
+    pattern=".*/(${pattern:1})"
+  else
+    pattern=".*/($pattern\\.$SUFFIX)"
+  fi
+
+  echo "# $base ($url)" >&2
+
+  [[ $VERBOSE ]] && echo "pattern: $pattern" >&2
+  [[ $VERBOSE ]] && echo "rewrite: $rewrite" >&2
+  h=( $base-$(echo "$method,$url" | md5sum) )
+  [[ $VERBOSE ]] && echo "hash: $h" >&2
+  if [[ $FORCE || ! -s $CACHEDIR/$h.data ]] &&
+     ! get-data "$method" "$url" > $CACHEDIR/$h.data ; then
+    echo "[ERROR] can't get data for $base ($method)" >&2
+    return 1
+  fi
+
+  ## FIXME : remove .zip when .tgz exists
+
+  [[ -z $FORCE && -s $CACHEDIR/$h.list ]] ||
+    cat $CACHEDIR/$h.data |
+    sed -r -n -e "s'^$pattern$'\0\t$rewrite'p" |
+    sort -t $'\t' -u -k 2V,2 > $CACHEDIR/$h.list
+
+  while read -r s v f ; do
+    source=$s ; version=$v ; filename=$f
+    [[ $ALL && $version ]] && echo "$base $version $source"
+  done < $CACHEDIR/$h.list
+
+  if [[ -z $version ]]; then
+    echo "[ERROR] can't find version for $base" >&2
+    return 1
+  fi
+
+  [[ $VERBOSE ]] && echo "> $base $version $source" >&2
+
+  if [[ $current != $version ]]; then
+    ordered=( $(echo -e "$current\n$version\n" | sort -V) )
+    [[ $VERBOSE ]] &&
+       echo "[DEBUG] $current ? ${ordered[0]} < ${ordered[1]}" >&2
+    if [[ ${ordered[1]} != $current ]]; then
+      echo "** $base ($current) need update to $version **"
+      return 1
+    fi
+  fi
+}
+
+while [[ $# -gt 0 ]] ; do
+  case "$1" in
+    -f|--filename) FILENAME=$2 ; shift ;;
+    -v|--verbose) VERBOSE=1 ;;
+    -a|--all) ALL=1 ;;
+    -F|--force) FORCE=1 ;;
+    -*) echo "unknown parameter $1" >&2 ; exit 1 ;;
+    *) break ;;
+  esac
+  shift
+done
+
+[[ -d $CACHEDIR ]] || mkdir -p $CACHEDIR
+[[ -z $1 && -e $PROGNAME.def ]] && FILENAME=$PROGNAME.def
+
+if [[ $FILENAME ]] ; then
+  status=0
+  while read -r base current method url pattern rewrite ; do
+    [[ -z ${url%%# *} ]] && continue
+    [[ $1 && $base != $1 ]] && continue
+    check-updates "$base" "$current" "$method" "$url" "$pattern" "$rewrite" || status=1
+  done < $FILENAME
+  exit $status
+elif [[ $1 ]] ; then
+  check-updates "$@"
+fi
