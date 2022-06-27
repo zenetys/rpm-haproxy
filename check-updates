@@ -6,6 +6,7 @@
 #
 
 set -o pipefail
+set -f
 PROGNAME=${0##*/}
 SUFFIX="(tar\\.gz|tgz|tar\\.xz|tar\\.bz2|tbz|zip|(src\\.)?rpm)"
 CACHEDIR=${CACHEDIR:-/tmp/$PROGNAME}
@@ -33,17 +34,19 @@ function get-data-lynx() {
 
 function get-data-json() {
   local url=$1 ; shift
+  local expression=${1:-.} ; shift
+  local pattern='(?<=")'${1:-'[a-z+]+://.+'}'(?=")' ; shift
   if [[ $url == https://api.github.com/* ]]; then
     curl_github_api_pages "$url"
   else
     curl "${curlopts[@]}" "$url"
-  fi |jq . |grep -Pio '(?<=")[a-z+]+://[^"]+'
+  fi |jq "$expression" |grep -Pio "$pattern"
 }
 
 function get-data() {
-  local method=$1 ; shift
+  local method=( ${1//:/$IFS} ) ; shift
   if declare -F -f "$FUNCNAME-$method"; then
-    "$FUNCNAME-$method" "$@" || return 1
+    "$FUNCNAME-$method" "$1" "${method[@]:1}" || return 1
   else
     return 1
   fi
@@ -78,6 +81,8 @@ function check-updates() {
   elif [[ ${pattern:0:1} == "/" ]] ; then
     s=$pattern
     pattern=".*/${s%/*}/(${s##*/}\\.$SUFFIX)"
+  elif [[ ${pattern:0:1} == "<" ]]; then
+    pattern=".*\\<(${pattern:1})"
   elif [[ ${pattern:0:1} == "=" ]]; then
     pattern=".*/(${pattern:1})"
   else
