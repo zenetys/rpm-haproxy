@@ -93,13 +93,11 @@ cd ..
 # lua
 cd %{liblua}/src
 make liblua.a %{?_smp_mflags} SYSCFLAGS="-DLUA_USE_LINUX -fPIC" SYSLIBS="-Wl,-E"
+lua_inc="$PWD"
+lua_lib="$PWD"
 cd ../..
-
-[[ -e %{liblua}/src/liblua.a ]] || exit 1
-
-export LUA_LIB_NAME=lua
-export LUA_INC="%{builddir}/%{liblua}/src"
-export LUA_LIB="%{builddir}/%{liblua}/src"
+[[ -e $lua_inc/lua.h ]] || exit 1
+[[ -e $lua_lib/liblua.a ]] || exit 1
 
 # haproxy
 cpu_opts=
@@ -125,6 +123,9 @@ setns_opts="USE_NS="
     ${systemd_opts:+"$systemd_opts"} \
     ${setns_opts:+"$setns_opts"} \
     ${cpu_opts:+"$cpu_opts"} \
+    LUA_INC="$lua_inc" \
+    LUA_LIB="$lua_lib" \
+    LUA_LIB_NAME=lua \
     ADDINC="%{optflags}" \
     ADDLIB="%{__global_ldflags}"
 
