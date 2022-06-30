@@ -32,7 +32,6 @@ Source2:        haproxy.cfg
 Source3:        haproxy.logrotate
 Source4:        haproxy.sysconfig
 Source5:        halog.1
-Patch0:         haproxy-2.6.0-ssl-path.patch
 Patch1:         haproxy-quic-fix-anonymous-union-for-gcc-4.4.patch
 
 Source100:      http://www.lua.org/ftp/%{liblua}.tar.gz
@@ -80,7 +79,6 @@ availability environments. Indeed, it can:
 %prep
 # haproxy
 %setup -q -n haproxy-%{version}
-%patch0 -p1 -b .makefile-ssl-path
 %patch1 -p1 -b .quic-anonymous-union
 
 # lua
@@ -108,13 +106,12 @@ export LUA_LIB="%{builddir}/%{liblua}/src"
 cd %{libssl_extract}
 ./config no-shared
 make %{?_smp_mflags}
+ssl_inc="$PWD/include"
+ssl_lib="$PWD"
 cd ..
-
-[[ -e %{libssl_extract}/libssl.a ]] || exit 1
-[[ -e %{libssl_extract}/libcrypto.a ]] || exit 1
-
-export SSL_INC="%{builddir}/%{libssl_extract}/include"
-export SSL_LIB="%{builddir}/%{libssl_extract}"
+[[ -e $ssl_inc/openssl/ssl.h ]] || exit 1
+[[ -e $ssl_lib/libssl.a ]] || exit 1
+[[ -e $ssl_lib/libcrypto.a ]] || exit 1
 
 # haproxy
 cpu_opts=
@@ -140,6 +137,8 @@ setns_opts="USE_NS="
     ${systemd_opts:+"$systemd_opts"} \
     ${setns_opts:+"$setns_opts"} \
     ${cpu_opts:+"$cpu_opts"} \
+    SSL_LIB="$ssl_lib" \
+    SSL_INC="$ssl_inc" \
     ADDINC="%{optflags}" \
     ADDLIB="%{__global_ldflags}"
 
