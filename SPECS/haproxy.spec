@@ -2,7 +2,7 @@
 # by Benoit Dolez <bdolez at zenetys.com>
 
 %define major           2.6
-%define minor           1
+%define minor           2
 
 %define haproxy_user    haproxy
 %define haproxy_group   %{haproxy_user}
@@ -32,7 +32,6 @@ Source2:        haproxy.cfg
 Source3:        haproxy.logrotate
 Source4:        haproxy.sysconfig
 Source5:        halog.1
-Patch1:         haproxy-quic-fix-anonymous-union-for-gcc-4.4.patch
 
 Source100:      http://www.lua.org/ftp/%{liblua}.tar.gz
 Patch100:       lua-5.3-luaroot.patch
@@ -79,7 +78,6 @@ availability environments. Indeed, it can:
 %prep
 # haproxy
 %setup -q -n haproxy-%{version}
-%patch1 -p1 -b .quic-anonymous-union
 
 # lua
 %setup -T -D -a 100 -n haproxy-%{version}
