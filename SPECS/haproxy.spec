@@ -12,7 +12,7 @@
 %define builddir        %{_builddir}/haproxy-%{version}
 
 %define liblua          lua-5.3.6
-%define libssl          openssl-3.0.5+quic
+%define libssl          OpenSSL_1_1_1s+quic
 %define libssl_extract  openssl-%(echo %{libssl} |sed 's,+,-,')
 
 %global _hardened_build 1
@@ -20,7 +20,7 @@
 
 Name:           haproxy26z+quic
 Version:        %{major}.%{minor}
-Release:        1%{?dist}.zenetys
+Release:        2%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
 
 Group:          System Environment/Daemons
@@ -145,7 +145,7 @@ setns_opts="USE_NS="
     SSL_LIB="$ssl_lib" \
     SSL_INC="$ssl_inc" \
     ADDINC="%{optflags}" \
-    ADDLIB="%{__global_ldflags}"
+    ADDLIB="%{__global_ldflags} -lpthread"
 
 %{__make} admin/halog/halog OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
 %{__make} admin/iprange/iprange OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
