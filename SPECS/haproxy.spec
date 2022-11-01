@@ -43,6 +43,12 @@ BuildRequires:      perl-Data-Dumper
 BuildRequires:      perl-IPC-Cmd
 BuildRequires:      zlib-devel
 
+%if 0%{?rhel} >= 9
+BuildRequires:      perl-File-Compare
+BuildRequires:      perl-FindBin
+BuildRequires:      perl-lib
+%endif
+
 Requires(pre):      shadow-utils
 
 %if 0%{?rhel} < 7
