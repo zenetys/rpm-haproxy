@@ -18,7 +18,7 @@ function curl_github_api_pages() {
   pages=$(set -o pipefail; curl "${curlopts[@]}" -I "$1?per_page=100" |
     sed -nre 's,^link:.*[?&]page=([0-9]+)>; rel="last".*,\1,p') || return $?
   if [[ -z $pages ]]; then
-    curl "${curlopts[@]}" "$1"
+    curl "${curlopts[@]}" "$1?per_page=100"
   else
     for (( p = 1; p <= pages; p++ )); do
       curl "${curlopts[@]}" "$1?per_page=100&page=$p"
