@@ -70,7 +70,7 @@ while (( $# > 0 )); do
     ## -O, --outputdir PATH: define output directory for generated packages 
     -O|--outputdir) OUTPUTDIR=${2%/} ; shift ;;
     ## --no-download: skip downloading sources if needed
-    --no-download) DOWNLOAD=0 ; shift ;;
+    --no-download) DOWNLOAD=0 ;;
     ## --repo PATH: local repository
     --repo) REPO=$2 ; shift ;;
     ## --update: update repository with new packages
@@ -88,6 +88,8 @@ while (( $# > 0 )); do
 done
 
 [[ $XDEBUG == 1 ]] && set -x
+
+RPMBUILDOPTS+=( "$@" )
 
 declare SPECFILE=${ARGS[0]}
 [[ ${SPECFILE:0:1} != "/" ]] && SPECFILE=$PWD/$SPECFILE
@@ -217,23 +219,67 @@ function dockerfile_for_dist() {
   fi
 }
 
+# normal dockerfile method may work with recent distro/docker
+DOCKER_OPTS_DIST_el9=( --security-opt seccomp=unconfined )
+function dockerscript_for_dist_el9() {
+    IMAGE=$1; shift
+    echo "# Build $IMAGE..."
+    set -xe
+    id=$(docker run "$@" -d rockylinux:9 sleep infinity)
+    docker exec "$id" dnf update -y
+    docker exec "$id" dnf install -y createrepo gcc make rpm-build
+    docker exec "$id" sh -c "echo '* - nproc 2048' >> /etc/security/limits.d/90-nproc.conf"
+    docker exec "$id" sh -c "echo keepcache=1 >> /etc/dnf/dnf.conf"
+    docker exec "$id" sh -c $'awk \x27/^\[/ { inside=$1 } inside=="[crb]"&&/enabled/{print "enabled=1"; next}{print}\x27 /etc/yum.repos.d/rocky.repo > /etc/yum.repos.d/rocky.repo.new && mv /etc/yum.repos.d/rocky.repo{.new,}'
+    docker exec "$id" dnf clean all
+    docker container commit "$id" "$IMAGE"
+    docker kill "$id"
+    docker rm "$id"
+}
+
+# Lookup docker script source to build a base image for $DIST.
+function dockerscript_for_dist() {
+  if [[ -f ~/.config/${0##*/}/build-image.$DIST ]]; then
+    cat ~/.config/"${0##*/}/build-image.$DIST"
+  elif declare -f "dockerscript_for_dist_$DIST"; then
+    echo "'dockerscript_for_dist_$DIST' \"\$@\""
+  else
+    return 1
+  fi
+}
+
+if [[ -f ~/.config/"${0##*/}/before-image.hook" ]] &&
+   ! source ~/.config/"${0##*/}/before-image.hook"; then
+    echo "FATAL: failed to source before-image.hook" >&2
+    exit 1
+fi
+
+DOCKER_OPTS_DIST="DOCKER_OPTS_DIST_$DIST[@]"
+DOCKER_OPTS_DIST=( "${!DOCKER_OPTS_DIST}" )
+
 if [[ -z $IMAGE ]]; then
   if [[ -z $DIST ]]; then
     echo "FATAL: require -d DIST or -I IMAGE (or both)" >&2
     exit 1
   fi
   # Set $IMAGE from $DIST
-  if ! image_src=$(dockerfile_for_dist); then
+  image_src=; image_script=;
+  if ! image_src=$(dockerfile_for_dist) &&
+     ! image_script=$(dockerscript_for_dist); then
     echo "FATAL: no image source for $DIST" >&2
     exit 1
   fi
-  image_sig=$(echo "$image_src" |md5sum |sed -re 's,^(.{7}).*,\1,')
+  image_sig=$(echo "${image_src:-$image_script}" |md5sum |sed -re 's,^(.{7}).*,\1,')
   IMAGE="rpmbuild/$DIST:$image_sig"
-  # Build docker image
-  if ! docker images -q "$IMAGE" |grep -q . &&
-     ! echo "$image_src" |docker build -t "$IMAGE" -; then
-    echo "FATAL: failed to build image $IMAGE for $DIST" >&2
-    exit 1
+  if ! docker images -q "$IMAGE" |grep -q .; then
+    # Build docker image
+    if [[ -n $image_src ]] && ! echo "$image_src" |docker build -t "$IMAGE" -; then
+      echo "FATAL: failed to build image $IMAGE for $DIST" >&2
+      exit 1
+    elif ! echo "$image_script" |bash -s -- "$IMAGE" "${DOCKER_OPTS_DIST[@]}"; then
+      echo "FATAL: image $IMAGE for $DIST, build scripit failed" >&2
+      exit 1
+    fi
   fi
 elif [[ -z $DIST ]]; then
   # Set $DIST from $IMAGE
@@ -242,6 +288,12 @@ elif [[ -z $DIST ]]; then
     echo "FATAL: failed to identify dist in image $IMAGE" >&2
     exit 1
   fi
+fi
+
+if [[ -f ~/.config/"${0##*/}/after-image.hook" ]] &&
+   ! source ~/.config/"${0##*/}/after-image.hook"; then
+    echo "FATAL: failed to source after-image.hook" >&2
+    exit 1
 fi
 
 # Extract type and version from $DIST for convenience
@@ -265,13 +317,14 @@ done
 
 # Need rpmbuild --noclean option to keep generated files in place
 if [[ $DIST_TYPE == el && $DIST_VERSION -ge 7 ]] ||
-   docker run --rm "$IMAGE" rpm --noclean >/dev/null 2>&1
+   docker run --rm "${DOCKER_OPTS_DIST[@]}" "$IMAGE" rpm --noclean >/dev/null 2>&1
 then
   RPMBUILDOPTS+=( --noclean )
 fi
 
 # Options for docker
 DOCKER_OPTS=(
+  "${DOCKER_OPTS_DIST[@]}"
   --tmpfs /tmp:rw,exec
   --mount "type=bind,src=$SPECDIR/$SPECFILE,dst=/tmp/$SPECFILE"
   --mount "type=bind,src=$CACHEBASE/cache-yum-$DIST,dst=/var/cache/yum"
