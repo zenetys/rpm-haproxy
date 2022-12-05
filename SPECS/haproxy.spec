@@ -1,8 +1,8 @@
 # Initially forked from https://git.centos.org/rpms/haproxy/tree/c8
 # by Benoit Dolez <bdolez at zenetys.com>
 
-%define major           2.6
-%define minor           7
+%define major           2.7
+%define minor           0
 
 %define haproxy_user    haproxy
 %define haproxy_group   %{haproxy_user}
