@@ -15,7 +15,7 @@
 
 Name:           haproxy22z
 Version:        %{major}.%{minor}
-Release:        1%{?dist}.zenetys
+Release:        2%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
 
 Group:          System Environment/Daemons
@@ -30,6 +30,8 @@ Source4:        haproxy.sysconfig
 Source5:        halog.1
 Source6:        http://www.lua.org/ftp/%{liblua}.tar.gz
 Source7:		lua-5.3-luaroot.patch
+
+Patch0:         haproxy-2.2.26-cfgparse-use-the-right-proxy-list.patch
 
 BuildRequires:      pcre-devel
 BuildRequires:      zlib-devel
@@ -70,6 +72,8 @@ availability environments. Indeed, it can:
 %prep
 %setup -q -n haproxy-%{version}
 %setup -T -D -a 6 -n haproxy-%{version}
+
+%patch0 -p1 -b .cfgparse-proxy-list
 
 %build
 
