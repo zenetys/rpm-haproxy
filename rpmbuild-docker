@@ -155,10 +155,16 @@ echo "OUTPUTDIR: $OUTPUTDIR"
 echo "PREBUILDSCRIPT: ${PREBUILDSCRIPT:-none}"
 echo "REPO: ${REPO:-none}"
 
+# Yum might take for ages to complete because it CLOEXEC on all available
+# file descriptors and recent dockers sets a very high default limit.
+# https://bugzilla.redhat.com/show_bug.cgi?id=1537564
+# https://github.com/rpm-software-management/rpm/pull/444
+DOCKER_OPTS_DIST_el6=( --ulimit 'nofile=1024' )
 function dockerfile_for_dist_el6() {
   cat <<'EOF'
 FROM centos:6
 RUN set -x && \
+    ulimit -n 1024 && \
     sed -i -re 's,mirror\.centos\.org,vault.centos.org,; s,^(mirrorlist),#\1,; s,^#(baseurl),\1,' /etc/yum.repos.d/CentOS-*.repo && \
     yum update -y && \
     yum install -y createrepo gcc make rpm-build && \
@@ -182,10 +188,16 @@ RUN set -x && \
 EOF
 }
 
+# Yum might take for ages to complete because it CLOEXEC on all available
+# file descriptors and recent dockers sets a very high default limit.
+# https://bugzilla.redhat.com/show_bug.cgi?id=1537564
+# https://github.com/rpm-software-management/rpm/pull/444
+DOCKER_OPTS_DIST_el7=( --ulimit 'nofile=1024' )
 function dockerfile_for_dist_el7() {
   cat <<'EOF'
 FROM centos:7
 RUN set -x && \
+    ulimit -n 1024 && \
     yum update -y && \
     yum install -y createrepo gcc make rpm-build && \
     echo '* - nproc 2048' >> /etc/security/limits.d/90-nproc.conf && \
