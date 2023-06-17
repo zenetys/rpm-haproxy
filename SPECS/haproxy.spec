@@ -12,7 +12,7 @@
 %define builddir        %{_builddir}/haproxy-%{version}
 
 %define liblua          lua-5.3.6
-%define libssl          OpenSSL_1_1_1t+quic
+%define libssl          OpenSSL_1_1_1u+quic
 %define libssl_extract  openssl-%(echo %{libssl} |sed 's,+,-,')
 
 %global _hardened_build 1
