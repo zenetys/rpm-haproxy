@@ -12,7 +12,7 @@
 %define builddir        %{_builddir}/haproxy-%{version}
 
 %define liblua          lua-5.3.6
-%define libssl          OpenSSL_1_1_1v-quic1
+%define libssl          OpenSSL_1_1_1w-quic1
 %define libssl_extract  openssl-%{libssl}
 
 %global _hardened_build 1
@@ -20,7 +20,7 @@
 
 Name:           haproxy28z+quic
 Version:        %{major}.%{minor}
-Release:        1%{?dist}.zenetys
+Release:        2%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
 
 Group:          System Environment/Daemons
