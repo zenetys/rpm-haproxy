@@ -12,8 +12,8 @@
 %define builddir        %{_builddir}/haproxy-%{version}
 
 %define liblua          lua-5.3.6
-%define libssl          OpenSSL_1_1_1v+quic
-%define libssl_extract  openssl-%(echo %{libssl} |sed 's,+,-,')
+%define libssl          OpenSSL_1_1_1v-quic1
+%define libssl_extract  openssl-%{libssl}
 
 %global _hardened_build 1
 %global debug_package   %{nil}
@@ -36,7 +36,7 @@ Source5:        halog.1
 Source100:      http://www.lua.org/ftp/%{liblua}.tar.gz
 Patch100:       lua-5.3-luaroot.patch
 
-Source200:      https://github.com/quictls/openssl/archive/refs/heads/%{libssl}.tar.gz
+Source200:      https://github.com/quictls/openssl/archive/refs/tags/%{libssl}.tar.gz
 
 BuildRequires:      pcre-devel
 BuildRequires:      perl-Data-Dumper
