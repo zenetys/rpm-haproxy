@@ -2,7 +2,7 @@
 # by Benoit Dolez <bdolez at zenetys.com>
 
 %define major           2.8
-%define minor           3
+%define minor           4
 
 %define haproxy_user    haproxy
 %define haproxy_group   %{haproxy_user}
@@ -20,7 +20,7 @@
 
 Name:           haproxy28z+quic
 Version:        %{major}.%{minor}
-Release:        2%{?dist}.zenetys
+Release:        1%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
 
 Group:          System Environment/Daemons
