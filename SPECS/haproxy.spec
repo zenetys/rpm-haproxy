@@ -1,8 +1,8 @@
 # Initially forked from https://git.centos.org/rpms/haproxy/tree/c8
 # by Benoit Dolez <bdolez at zenetys.com>
 
-%define major           2.8
-%define minor           5
+%define major           2.9
+%define minor           0
 
 %define haproxy_user    haproxy
 %define haproxy_group   %{haproxy_user}
@@ -11,12 +11,12 @@
 %define haproxy_datadir %{_datadir}/haproxy
 %define builddir        %{_builddir}/haproxy-%{version}
 
-%define liblua          lua-5.3.6
+%define liblua          lua-5.4.6
 
 %global _hardened_build 1
 %global debug_package   %{nil}
 
-Name:           haproxy28z
+Name:           haproxy29z
 Version:        %{major}.%{minor}
 Release:        1%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
@@ -32,7 +32,7 @@ Source4:        haproxy.sysconfig
 Source5:        halog.1
 
 Source100:      http://www.lua.org/ftp/%{liblua}.tar.gz
-Patch100:       lua-5.3-luaroot.patch
+Patch100:       lua-path.patch
 
 BuildRequires:      pcre-devel
 BuildRequires:      zlib-devel
@@ -84,7 +84,11 @@ cd ..
 %build
 # lua
 cd %{liblua}/src
-make liblua.a %{?_smp_mflags} SYSCFLAGS="-DLUA_USE_LINUX -fPIC" SYSLIBS="-Wl,-E"
+make liblua.a \
+    SYSCFLAGS='-g -DLUA_USE_LINUX -fPIC' \
+    SYSLIBS='-Wl,-E' \
+    MYCFLAGS='-DLUA_ROOT="\"%{_prefix}/\"" -DLIBDIRNAME="\"%{_lib}\""' \
+    %{?_smp_mflags}
 lua_inc="$PWD"
 lua_lib="$PWD"
 cd ../..

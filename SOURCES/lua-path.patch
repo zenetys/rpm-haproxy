@@ -1,0 +1,18 @@
+--- a/src/luaconf.h	2023-05-02 22:02:30.000000000 +0200
++++ b/src/luaconf.h	2023-12-08 19:53:12.225815662 +0100
+@@ -223,9 +223,14 @@
+ 
+ #else			/* }{ */
+ 
++#ifndef LUA_ROOT
+ #define LUA_ROOT	"/usr/local/"
++#endif
++#ifndef LIBDIRNAME
++#define LIBDIRNAME	"lib"
++#endif
+ #define LUA_LDIR	LUA_ROOT "share/lua/" LUA_VDIR "/"
+-#define LUA_CDIR	LUA_ROOT "lib/lua/" LUA_VDIR "/"
++#define LUA_CDIR	LUA_ROOT LIBDIRNAME "/lua/" LUA_VDIR "/"
+ 
+ #if !defined(LUA_PATH_DEFAULT)
+ #define LUA_PATH_DEFAULT  \
