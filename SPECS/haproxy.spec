@@ -2,7 +2,7 @@
 # by Benoit Dolez <bdolez at zenetys.com>
 
 %define major           2.8
-%define minor           4
+%define minor           5
 
 %define haproxy_user    haproxy
 %define haproxy_group   %{haproxy_user}
