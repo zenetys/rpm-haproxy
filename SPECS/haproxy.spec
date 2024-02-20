@@ -18,7 +18,7 @@
 
 Name:           haproxy24z
 Version:        %{major}.%{minor}
-Release:        1%{?dist}.zenetys
+Release:        2%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
 
 Group:          System Environment/Daemons
@@ -104,7 +104,7 @@ systemd_opts="USE_SYSTEMD="
 setns_opts="USE_NS="
 %endif
 
-%{__make} %{?_smp_mflags} CPU="generic" TARGET="linux-glibc" USE_OPENSSL=1 USE_PCRE=1 USE_ZLIB=1 USE_LUA=1 USE_CRYPT_H=1 ${systemd_opts:+"$systemd_opts"} USE_LINUX_TPROXY=1 USE_GETADDRINFO=1 ${regparm_opts:+"$regparm_opts"} ${setns_opts:+"$setns_opts"} ${cpu_opts:+"$cpu_opts"} ADDINC="%{optflags}" ADDLIB="%{__global_ldflags}"
+%{__make} %{?_smp_mflags} CPU="generic" TARGET="linux-glibc" USE_OPENSSL=1 USE_PROMEX=1 USE_PCRE=1 USE_ZLIB=1 USE_LUA=1 USE_CRYPT_H=1 ${systemd_opts:+"$systemd_opts"} USE_LINUX_TPROXY=1 USE_GETADDRINFO=1 ${regparm_opts:+"$regparm_opts"} ${setns_opts:+"$setns_opts"} ${cpu_opts:+"$cpu_opts"} ADDINC="%{optflags}" ADDLIB="%{__global_ldflags}"
 
 %{__make} admin/halog/halog OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
 
