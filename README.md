@@ -1,6 +1,6 @@
 | Package&nbsp;name | Supported&nbsp;targets | Includes |
 | :--- | :--- | :--- |
-| haproxy28z+quic | <nobr>el6, el7, el8, el9</nobr> | <nobr>lua 5.3 (static)</nobr><br/><nobr>quictls 1.1.1 (static)</nobr> |
+| haproxy29z+quic | <nobr>el6, el7, el8, el9</nobr> | <nobr>lua 5.4 (static)</nobr><br/><nobr>quictls 1.1.1 (static)</nobr> |
 <br/>
 
 
