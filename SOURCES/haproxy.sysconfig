@@ -1,4 +1,4 @@
-# Add extra options to the haproxy daemon here. This can be useful for
-# specifying multiple configuration files with multiple -f options.
-# See haproxy(1) for a complete list of options.
-OPTIONS=""
+# Override systemd haproxy.service Environment variables used in ExecStart.
+# Run "systemctl show -p Environment haproxy" to get default values.
+# Run "systemctl show -p ExecStart haproxy" to see how variables are used
+# in ExecStart command.
