@@ -164,11 +164,11 @@ setns_opts="USE_NS="
 %{__install} -p -D -m 0755 ./examples/haproxy.init %{buildroot}%{_initddir}/haproxy
 %else
 %{__install} -p -D -m 0644 admin/systemd/haproxy.service %{buildroot}%{_unitdir}/haproxy.service
+%{__install} -p -D -m 0644 %{SOURCE4} %{buildroot}%{_sysconfdir}/sysconfig/haproxy
 %endif
 
 %{__install} -p -D -m 0644 %{SOURCE2} %{buildroot}%{haproxy_confdir}/haproxy.cfg
 %{__install} -p -D -m 0644 %{SOURCE3} %{buildroot}%{_sysconfdir}/logrotate.d/haproxy
-%{__install} -p -D -m 0644 %{SOURCE4} %{buildroot}%{_sysconfdir}/sysconfig/haproxy
 %{__install} -p -D -m 0644 %{SOURCE5} %{buildroot}%{_mandir}/man1/halog.1
 %{__install} -d -m 0755 %{buildroot}%{haproxy_homedir}
 %{__install} -d -m 0755 %{buildroot}%{haproxy_datadir}
@@ -240,11 +240,11 @@ fi
 %{haproxy_datadir}/*
 %config(noreplace) %{haproxy_confdir}/haproxy.cfg
 %config(noreplace) %{_sysconfdir}/logrotate.d/haproxy
-%config(noreplace) %{_sysconfdir}/sysconfig/haproxy
 %if 0%{?rhel} < 7
 %{_initddir}/haproxy
 %else
 %{_unitdir}/haproxy.service
+%config(noreplace) %{_sysconfdir}/sysconfig/haproxy
 %endif
 %{_sbindir}/haproxy
 %{_bindir}/halog
