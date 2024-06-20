@@ -51,21 +51,15 @@ BuildRequires:      perl-lib
 
 Requires(pre):      shadow-utils
 
-%if 0%{?rhel} < 7
-%define __global_ldflags %{nil}
-%endif
-
 %if 0%{?rhel} < 8
 %define build_ldflags    %{nil}
 %endif
 
-%if 0%{?rhel} >= 7
 BuildRequires:      systemd-devel
 BuildRequires:      systemd-units
 Requires(post):     systemd
 Requires(preun):    systemd
 Requires(postun):   systemd
-%endif
 
 %description
 HAProxy is a TCP/HTTP reverse proxy which is particularly suited for high
@@ -121,17 +115,8 @@ cd ..
 
 # haproxy
 cpu_opts=
-%if 0%{?rhel} <= 6
-cpu_opts="CPU_CFLAGS=-O2 -fno-strict-aliasing"
-%endif
-
-%if 0%{?rhel} >= 7
 systemd_opts="USE_SYSTEMD=1"
 setns_opts="USE_NS=1"
-%else
-systemd_opts="USE_SYSTEMD="
-setns_opts="USE_NS="
-%endif
 
 %{__make} \
     %{?_smp_mflags} \
@@ -160,12 +145,8 @@ setns_opts="USE_NS="
 %{__make} install-bin DESTDIR=%{buildroot} PREFIX=%{_prefix} TARGET="linux2628"
 %{__make} install-man DESTDIR=%{buildroot} PREFIX=%{_prefix}
 
-%if 0%{?rhel} < 7
-%{__install} -p -D -m 0755 ./examples/haproxy.init %{buildroot}%{_initddir}/haproxy
-%else
 %{__install} -p -D -m 0644 admin/systemd/haproxy.service %{buildroot}%{_unitdir}/haproxy.service
 %{__install} -p -D -m 0644 %{SOURCE4} %{buildroot}%{_sysconfdir}/sysconfig/haproxy
-%endif
 
 %{__install} -p -D -m 0644 %{SOURCE2} %{buildroot}%{haproxy_confdir}/haproxy.cfg
 %{__install} -p -D -m 0644 %{SOURCE3} %{buildroot}%{_sysconfdir}/logrotate.d/haproxy
@@ -202,50 +183,27 @@ getent passwd %{haproxy_user} >/dev/null || \
 exit 0
 
 %post
-%if 0%{?rhel} < 7
-chkconfig --add haproxy
-%else
 %systemd_post haproxy.service
-%endif
 
 %preun
-%if 0%{?rhel} < 7
-if [ $1 -eq 0 ]; then
-    service haproxy status >/dev/null && service haproxy stop
-    chkconfig --del haproxy
-fi
-%else
 %systemd_preun haproxy.service
-%endif
 
 %postun
-%if 0%{?rhel} < 7
-%else
 %systemd_postun_with_restart haproxy.service
-%endif
 
 %files
 %defattr(-,root,root,-)
 %doc doc/* examples/*
 %doc CHANGELOG README VERSION
-%if 0%{?rhel} < 7
-%doc LICENSE
-%endif
-%if 0%{?rhel} >= 7
 %license LICENSE
-%endif
 %dir %{haproxy_homedir}
 %dir %{haproxy_confdir}
 %dir %{haproxy_datadir}
 %{haproxy_datadir}/*
 %config(noreplace) %{haproxy_confdir}/haproxy.cfg
 %config(noreplace) %{_sysconfdir}/logrotate.d/haproxy
-%if 0%{?rhel} < 7
-%{_initddir}/haproxy
-%else
 %{_unitdir}/haproxy.service
 %config(noreplace) %{_sysconfdir}/sysconfig/haproxy
-%endif
 %{_sbindir}/haproxy
 %{_bindir}/halog
 %{_bindir}/iprange
