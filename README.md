@@ -1,6 +1,6 @@
 | Package&nbsp;name | Supported&nbsp;targets | Includes |
 | :--- | :--- | :--- |
-| haproxy30z | <nobr>el6, el7, el8, el9</nobr> | <nobr>lua 5.4 (static)</nobr> |
+| haproxy30z | <nobr>el7, el8, el9</nobr> | <nobr>lua 5.4 (static)</nobr> |
 <br/>
 
 
@@ -10,7 +10,6 @@ The package can be built easily using the script rpmbuild-docker provided in thi
 
 ```
 ## run from this git base tree
-$ ./rpmbuild-docker -d el6
 $ ./rpmbuild-docker -d el7
 $ ./rpmbuild-docker -d el8
 $ ./rpmbuild-docker -d el9
