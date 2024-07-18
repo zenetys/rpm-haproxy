@@ -11,14 +11,14 @@
 %define haproxy_datadir %{_datadir}/haproxy
 %define builddir        %{_builddir}/haproxy-%{version}
 
-%define liblua          lua-5.4.6
+%define liblua          lua-5.4.7
 
 %global _hardened_build 1
 %global debug_package   %{nil}
 
 Name:           haproxy29z
 Version:        %{major}.%{minor}
-Release:        1%{?dist}.zenetys
+Release:        2%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
 
 Group:          System Environment/Daemons
