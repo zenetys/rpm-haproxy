@@ -40,10 +40,6 @@ BuildRequires:      openssl-devel
 
 Requires(pre):      shadow-utils
 
-%if 0%{?rhel} < 8
-%define build_ldflags    %{nil}
-%endif
-
 BuildRequires:      systemd-devel
 BuildRequires:      systemd-units
 Requires(post):     systemd
