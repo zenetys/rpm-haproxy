@@ -18,7 +18,7 @@
 
 Name:           haproxy29z
 Version:        %{major}.%{minor}
-Release:        2%{?dist}.zenetys
+Release:        3%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
 
 Group:          System Environment/Daemons
@@ -30,6 +30,7 @@ Source2:        haproxy.cfg
 Source3:        haproxy.logrotate
 Source4:        haproxy.sysconfig
 Source5:        halog.1
+Patch0:         haproxy-2.9.9-proxy-fix-email-alert-invalid-free.patch
 
 Source100:      http://www.lua.org/ftp/%{liblua}.tar.gz
 Patch100:       lua-path.patch
@@ -73,6 +74,7 @@ availability environments. Indeed, it can:
 %prep
 # haproxy
 %setup -q -n haproxy-%{version}
+%patch0 -p1
 
 # lua
 %setup -T -D -a 100 -n haproxy-%{version}
