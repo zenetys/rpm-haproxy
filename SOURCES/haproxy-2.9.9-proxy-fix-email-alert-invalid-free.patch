@@ -1,0 +1,58 @@
+From 305850a8847237c23d3ba0aa27e2e7c25ca120c3 Mon Sep 17 00:00:00 2001
+From: Christopher Faulet <cfaulet@haproxy.com>
+Date: Tue, 2 Jul 2024 10:33:47 +0200
+Subject: [PATCH] BUG/MEDIUM: proxy: fix email-alert invalid free
+
+In fa90a7d3 ("BUG/MINOR: proxy: fix email-alert leak on deinit()"), I
+tried to fix email-alert deinit() leak the simple way by leveraging
+existing free_email_alert() helper function which was already used for
+freeing email alert settings used in a default section.
+
+However, as described in GH #2608, there is a subtelty that makes
+free_email_alert() not suitable for use from free_proxy().
+
+Indeed, proxy 'mailers.name' hint shares the same memory space than the
+pointer to the corresponding mailers section (once the proxy is resolved,
+name hint is replaced by the pointer to the section). However, since both
+values share the same space (through union), we have to take care of not
+freeing `mailers.name` once init_email_alert() was called on the proxy.
+
+Unfortunately, free_email_alert() isn't protected against that, causing
+double free() during deinit when mailers section is referenced from
+multiple proxy sections. Since there is no easy fix, and that the leak in
+itself isn't a big deal (fa90a7d3 was simply an opportunistic fix rather
+than a must-have given that the leak only occurs during deinit and not
+during runtime), let's actually revert the fix to restore legacy behavior
+and prevent deinit errors.
+
+Thanks to @snetat for having reported the issue on Github as well as
+providing relevant infos to pinpoint the bug.
+
+It should be backported everywhere fa90a7d3 was backported.
+[ada: for versions prior to 3.0, simply revert the offending commit using
+'git revert' as proxy_free_common() first appears in 3.0]
+
+(cherry picked from commit 8e226682be904a6774f65e90bac0b674888cc293)
+Signed-off-by: Christopher Faulet <cfaulet@haproxy.com>
+(cherry picked from commit 0a29c2efcfc58bfac8485e87dd09e62a4eeb31af)
+[cf: the offentding commit was reverted instead of applying the fix]
+Signed-off-by: Christopher Faulet <cfaulet@haproxy.com>
+---
+ src/proxy.c |    1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/src/proxy.c b/src/proxy.c
+index 2983628..64a5e72 100644
+--- a/src/proxy.c
++++ b/src/proxy.c
+@@ -234,7 +234,6 @@ void free_proxy(struct proxy *p)
+ 	ha_free(&p->check_path);
+ 	ha_free(&p->dyncookie_key);
+ 	free(p->rdp_cookie_name);
+-	free_email_alert(p);
+ 	free(p->invalid_rep);
+ 	free(p->invalid_req);
+ 	ha_free(&p->conn_src.iface_name);
+-- 
+1.7.10.4
+
