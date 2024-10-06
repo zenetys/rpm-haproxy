@@ -1,3 +1,6 @@
+> [!NOTE]
+> **This branch is not maintained anymore.**
+
 | Package&nbsp;name | Supported&nbsp;targets | Includes |
 | :--- | :--- | :--- |
 | haproxy29z | <nobr>el8, el9</nobr> | <nobr>lua 5.4 (static)</nobr> |
