@@ -1,3 +1,6 @@
+> [!NOTE]
+> **This branch is not maintained anymore.**
+
 | Package&nbsp;name | Supported&nbsp;targets | Includes |
 | :--- | :--- | :--- |
 | haproxy29z+quic | <nobr>el6, el7, el8, el9</nobr> | <nobr>lua 5.4 (static)</nobr><br/><nobr>quictls 1.1.1 (static)</nobr> |
