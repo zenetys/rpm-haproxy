@@ -1,3 +1,6 @@
+> [!NOTE]
+> **This branch is not maintained anymore.**
+
 Supported targets: el6, el7, el8, el9
 
 Notes:
