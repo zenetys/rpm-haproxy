@@ -1,3 +1,7 @@
+> [!NOTE]
+> **This branch is not maintained anymore.**
+<br/>
+
 | <nobr>Package name</nobr> | <nobr>Supported targets</nobr> |
 | :--- | :--- |
 | haproxy30z+quic | <nobr>el8, el9</nobr> |
