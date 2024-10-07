@@ -41,6 +41,8 @@ Source200:      https://github.com/quictls/openssl/archive/refs/tags/%{libssl}.t
 BuildRequires:      pcre-devel
 BuildRequires:      perl-Data-Dumper
 BuildRequires:      perl-IPC-Cmd
+BuildRequires:      systemd-devel
+BuildRequires:      systemd-rpm-macros
 BuildRequires:      zlib-devel
 
 %if 0%{?rhel} >= 9
@@ -51,11 +53,7 @@ BuildRequires:      perl-lib
 
 Requires(pre):      shadow-utils
 
-BuildRequires:      systemd-devel
-BuildRequires:      systemd-units
-Requires(post):     systemd
-Requires(preun):    systemd
-Requires(postun):   systemd
+%{?systemd_requires}
 
 %description
 HAProxy is a TCP/HTTP reverse proxy which is particularly suited for high
