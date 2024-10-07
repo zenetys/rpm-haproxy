@@ -110,21 +110,21 @@ cd ..
 [[ -e $ssl_lib/libcrypto.a ]] || exit 1
 
 # haproxy
-cpu_opts=
-systemd_opts="USE_SYSTEMD=1"
-setns_opts="USE_NS=1"
-
 %{__make} \
     %{?_smp_mflags} \
-    CPU="generic" TARGET="linux-glibc" \
-    USE_OPENSSL=1 USE_PCRE=1 USE_ZLIB=1 USE_LUA=1 USE_QUIC=1 \
+    CPU=generic \
+    TARGET=linux-glibc \
+    USE_OPENSSL=1 \
+    USE_QUIC=1 \
+    USE_PCRE=1 \
+    USE_ZLIB=1 \
+    USE_LUA=1 \
     USE_PROMEX=1 \
     USE_CRYPT_H=1 \
     USE_LINUX_TPROXY=1 \
     USE_GETADDRINFO=1 \
-    ${systemd_opts:+"$systemd_opts"} \
-    ${setns_opts:+"$setns_opts"} \
-    ${cpu_opts:+"$cpu_opts"} \
+    USE_SYSTEMD=1 \
+    USE_NS=1 \
     LUA_INC="$lua_inc" \
     LUA_LIB="$lua_lib" \
     LUA_LIB_NAME=lua \
