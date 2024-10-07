@@ -12,8 +12,6 @@
 %define builddir        %{_builddir}/haproxy-%{version}
 
 %define liblua          lua-5.4.7
-%define libssl          OpenSSL_1_1_1w-quic1
-%define libssl_extract  openssl-%{libssl}
 
 %global _hardened_build 1
 %global debug_package   %{nil}
@@ -36,21 +34,13 @@ Source5:        halog.1
 Source100:      http://www.lua.org/ftp/%{liblua}.tar.gz
 Patch100:       lua-path.patch
 
-Source200:      https://github.com/quictls/openssl/archive/refs/tags/%{libssl}.tar.gz
-
+BuildRequires:      aws-lc-0z-devel
 BuildRequires:      pcre-devel
-BuildRequires:      perl-Data-Dumper
-BuildRequires:      perl-IPC-Cmd
 BuildRequires:      systemd-devel
 BuildRequires:      systemd-rpm-macros
 BuildRequires:      zlib-devel
 
-%if 0%{?rhel} >= 9
-BuildRequires:      perl-File-Compare
-BuildRequires:      perl-FindBin
-BuildRequires:      perl-lib
-%endif
-
+Requires:           aws-lc-0z
 Requires(pre):      shadow-utils
 
 %{?systemd_requires}
@@ -79,9 +69,6 @@ cd %{liblua}
 %patch100 -p1 -b .lua-path
 cd ..
 
-# openssl
-%setup -T -D -a 200 -n haproxy-%{version}
-
 %build
 # lua
 cd %{liblua}/src
@@ -96,23 +83,12 @@ cd ../..
 [[ -e $lua_inc/lua.h ]] || exit 1
 [[ -e $lua_lib/liblua.a ]] || exit 1
 
-# openssl
-cd %{libssl_extract}
-./config no-shared
-make %{?_smp_mflags}
-ssl_inc="$PWD/include"
-ssl_lib="$PWD"
-cd ..
-[[ -e $ssl_inc/openssl/ssl.h ]] || exit 1
-[[ -e $ssl_lib/libssl.a ]] || exit 1
-[[ -e $ssl_lib/libcrypto.a ]] || exit 1
-
 # haproxy
 %{__make} \
     %{?_smp_mflags} \
     CPU=generic \
     TARGET=linux-glibc \
-    USE_OPENSSL=1 \
+    USE_OPENSSL_AWSLC=1 \
     USE_QUIC=1 \
     USE_PCRE=1 \
     USE_ZLIB=1 \
@@ -126,10 +102,10 @@ cd ..
     LUA_INC="$lua_inc" \
     LUA_LIB="$lua_lib" \
     LUA_LIB_NAME=lua \
-    SSL_LIB="$ssl_lib" \
-    SSL_INC="$ssl_inc" \
+    SSL_LIB='%{aws_lc_0z_prefix}/%{_lib} -Wl,-rpath,%{aws_lc_0z_prefix}/%{_lib}' \
+    SSL_INC='%{aws_lc_0z_prefix}/include' \
     ADDINC="%{optflags}" \
-    ADDLIB="%{__global_ldflags} -lpthread"
+    ADDLIB="%{__global_ldflags}"
 
 %{__make} admin/halog/halog OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
 %{__make} admin/iprange/iprange OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
