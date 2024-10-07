@@ -38,7 +38,6 @@ BuildRequires:      openssl-devel
 BuildRequires:      pcre-devel
 BuildRequires:      systemd-devel
 BuildRequires:      systemd-rpm-macros
-BuildRequires:      zlib-devel
 
 Requires(pre):      shadow-utils
 
@@ -90,7 +89,7 @@ cd ../..
     TARGET=linux-glibc \
     USE_OPENSSL=1 \
     USE_PCRE=1 \
-    USE_ZLIB=1 \
+    USE_SLZ=1 \
     USE_LUA=1 \
     USE_PROMEX=1 \
     USE_CRYPT_H=1 \
