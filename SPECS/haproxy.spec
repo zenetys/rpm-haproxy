@@ -11,8 +11,6 @@
 %define haproxy_datadir %{_datadir}/haproxy
 %define builddir        %{_builddir}/haproxy-%{version}
 
-%define liblua          lua-5.4.7
-
 %global _hardened_build 1
 %global debug_package   %{nil}
 
@@ -31,14 +29,11 @@ Source3:        haproxy.logrotate
 Source4:        haproxy.sysconfig
 Source5:        halog.1
 
-Source100:      http://www.lua.org/ftp/%{liblua}.tar.gz
-Patch100:       lua-path.patch
-
 BuildRequires:      aws-lc-0z-devel
+BuildRequires:      lua-devel
 BuildRequires:      pcre-devel
 BuildRequires:      systemd-devel
 BuildRequires:      systemd-rpm-macros
-BuildRequires:      zlib-devel
 
 Requires:           aws-lc-0z
 Requires(pre):      shadow-utils
@@ -60,30 +55,9 @@ availability environments. Indeed, it can:
    intercepted from the application
 
 %prep
-# haproxy
 %setup -q -n haproxy-%{version}
 
-# lua
-%setup -T -D -a 100 -n haproxy-%{version}
-cd %{liblua}
-%patch100 -p1 -b .lua-path
-cd ..
-
 %build
-# lua
-cd %{liblua}/src
-make liblua.a \
-    SYSCFLAGS='-g -DLUA_USE_LINUX -fPIC' \
-    SYSLIBS='-Wl,-E' \
-    MYCFLAGS='-DLUA_ROOT="\"%{_prefix}/\"" -DLIBDIRNAME="\"%{_lib}\""' \
-    %{?_smp_mflags}
-lua_inc="$PWD"
-lua_lib="$PWD"
-cd ../..
-[[ -e $lua_inc/lua.h ]] || exit 1
-[[ -e $lua_lib/liblua.a ]] || exit 1
-
-# haproxy
 %{__make} \
     %{?_smp_mflags} \
     CPU=generic \
@@ -91,7 +65,7 @@ cd ../..
     USE_OPENSSL_AWSLC=1 \
     USE_QUIC=1 \
     USE_PCRE=1 \
-    USE_ZLIB=1 \
+    USE_SLZ=1 \
     USE_LUA=1 \
     USE_PROMEX=1 \
     USE_CRYPT_H=1 \
@@ -99,9 +73,6 @@ cd ../..
     USE_GETADDRINFO=1 \
     USE_SYSTEMD=1 \
     USE_NS=1 \
-    LUA_INC="$lua_inc" \
-    LUA_LIB="$lua_lib" \
-    LUA_LIB_NAME=lua \
     SSL_LIB='%{aws_lc_0z_prefix}/%{_lib} -Wl,-rpath,%{aws_lc_0z_prefix}/%{_lib}' \
     SSL_INC='%{aws_lc_0z_prefix}/include' \
     ADDINC="%{optflags}" \
