@@ -76,10 +76,10 @@ availability environments. Indeed, it can:
     USE_GETADDRINFO=1 \
     USE_SYSTEMD=1 \
     USE_NS=1 \
-    ADDINC="%{optflags}" \
-    ADDLIB="%{__global_ldflags}"
+    CFLAGS="%{build_cflags}" \
+    LDFLAGS="%{build_ldflags}"
 
-%{__make} admin/halog/halog V=%{make_verbose} OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
+%{__make} admin/halog/halog V=%{make_verbose} CFLAGS="%{build_cflags}" LDFLAGS="%{build_ldflags}"
 %{__make} -C admin/iprange V=%{make_verbose} OPTIMIZE="%{build_cflags}" LDFLAGS="%{build_ldflags}"
 %{__make} -C admin/systemd PREFIX=%{_prefix}
 
