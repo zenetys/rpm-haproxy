@@ -80,10 +80,10 @@ availability environments. Indeed, it can:
     USE_NS=1 \
     SSL_LIB='%{aws_lc_0z_prefix}/%{_lib} -Wl,-rpath,%{aws_lc_0z_prefix}/%{_lib}' \
     SSL_INC='%{aws_lc_0z_prefix}/include' \
-    ADDINC="%{optflags}" \
-    ADDLIB="%{__global_ldflags}"
+    CFLAGS="%{build_cflags}" \
+    LDFLAGS="%{build_ldflags}"
 
-%{__make} admin/halog/halog V=%{make_verbose} OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
+%{__make} admin/halog/halog V=%{make_verbose} CFLAGS="%{build_cflags}" LDFLAGS="%{build_ldflags}"
 %{__make} -C admin/iprange V=%{make_verbose} OPTIMIZE="%{build_cflags}" LDFLAGS="%{build_ldflags}"
 %{__make} -C admin/systemd PREFIX=%{_prefix}
 
