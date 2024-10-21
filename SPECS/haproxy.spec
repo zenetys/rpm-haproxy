@@ -31,7 +31,7 @@ Source5:        halog.1
 
 BuildRequires:      lua-devel
 BuildRequires:      openssl-devel
-BuildRequires:      pcre-devel
+BuildRequires:      pcre2-devel
 BuildRequires:      systemd-devel
 BuildRequires:      systemd-rpm-macros
 
@@ -62,7 +62,7 @@ availability environments. Indeed, it can:
     CPU=generic \
     TARGET=linux-glibc \
     USE_OPENSSL=1 \
-    USE_PCRE=1 \
+    USE_PCRE2=1 \
     USE_SLZ=1 \
     USE_LUA=1 \
     USE_PROMEX=1 \
