@@ -11,6 +11,8 @@
 %define haproxy_datadir %{_datadir}/haproxy
 %define builddir        %{_builddir}/haproxy-%{version}
 
+%{!?make_verbose: %define make_verbose 0}
+
 %global _hardened_build 1
 
 Name:           haproxy30z+quic
@@ -59,6 +61,7 @@ availability environments. Indeed, it can:
 %build
 %{__make} \
     %{?_smp_mflags} \
+    V=%{make_verbose} \
     CPU=generic \
     TARGET=linux-glibc \
     USE_OPENSSL_AWSLC=1 \
@@ -77,8 +80,8 @@ availability environments. Indeed, it can:
     ADDINC="%{optflags}" \
     ADDLIB="%{__global_ldflags}"
 
-%{__make} admin/halog/halog OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
-%{__make} admin/iprange/iprange OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
+%{__make} admin/halog/halog V=%{make_verbose} OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
+%{__make} admin/iprange/iprange V=%{make_verbose} OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
 %{__make} -C admin/systemd PREFIX=/usr
 
 %install
