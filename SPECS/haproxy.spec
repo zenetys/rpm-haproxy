@@ -13,6 +13,7 @@
 
 %{!?make_verbose: %define make_verbose 0}
 
+%global source_date_epoch_from_changelog 0
 %global _hardened_build 1
 
 Name:           haproxy30z
