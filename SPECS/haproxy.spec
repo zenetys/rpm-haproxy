@@ -30,7 +30,9 @@ Source3:        haproxy.logrotate
 Source4:        haproxy.sysconfig
 Source5:        halog.1
 
+BuildRequires:      gcc
 BuildRequires:      lua-devel
+BuildRequires:      make
 BuildRequires:      openssl-devel
 BuildRequires:      pcre2-devel
 BuildRequires:      systemd-devel
