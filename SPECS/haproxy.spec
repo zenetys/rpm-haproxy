@@ -31,7 +31,9 @@ Source4:        haproxy.sysconfig
 Source5:        halog.1
 
 BuildRequires:      aws-lc-0z-devel
+BuildRequires:      gcc
 BuildRequires:      lua-devel
+BuildRequires:      make
 BuildRequires:      pcre2-devel
 BuildRequires:      systemd-devel
 BuildRequires:      systemd-rpm-macros
