@@ -12,7 +12,6 @@
 %define builddir        %{_builddir}/haproxy-%{version}
 
 %global _hardened_build 1
-%global debug_package   %{nil}
 
 Name:           haproxy30z
 Version:        %{major}.%{minor}
