@@ -35,16 +35,14 @@ Source100:      http://www.lua.org/ftp/%{liblua}.tar.gz
 Patch100:       lua-path.patch
 
 BuildRequires:      pcre-devel
+BuildRequires:      systemd-devel
+BuildRequires:      systemd-rpm-macros
 BuildRequires:      zlib-devel
 BuildRequires:      openssl-devel
 
 Requires(pre):      shadow-utils
 
-BuildRequires:      systemd-devel
-BuildRequires:      systemd-units
-Requires(post):     systemd
-Requires(preun):    systemd
-Requires(postun):   systemd
+%{?systemd_requires}
 
 %description
 HAProxy is a TCP/HTTP reverse proxy which is particularly suited for high
