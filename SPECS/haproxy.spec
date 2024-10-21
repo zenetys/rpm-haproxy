@@ -34,11 +34,11 @@ Source5:        halog.1
 Source100:      http://www.lua.org/ftp/%{liblua}.tar.gz
 Patch100:       lua-path.patch
 
+BuildRequires:      openssl-devel
 BuildRequires:      pcre-devel
 BuildRequires:      systemd-devel
 BuildRequires:      systemd-rpm-macros
 BuildRequires:      zlib-devel
-BuildRequires:      openssl-devel
 
 Requires(pre):      shadow-utils
 
