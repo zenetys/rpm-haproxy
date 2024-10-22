@@ -81,7 +81,7 @@ availability environments. Indeed, it can:
 
 %{__make} admin/halog/halog V=%{make_verbose} OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
 %{__make} admin/iprange/iprange V=%{make_verbose} OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
-%{__make} -C admin/systemd PREFIX=/usr
+%{__make} -C admin/systemd PREFIX=%{_prefix}
 
 %install
 %{__make} install-bin DESTDIR=%{buildroot} PREFIX=%{_prefix} TARGET="linux2628"
