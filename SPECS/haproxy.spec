@@ -80,7 +80,7 @@ availability environments. Indeed, it can:
     ADDLIB="%{__global_ldflags}"
 
 %{__make} admin/halog/halog V=%{make_verbose} OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
-%{__make} admin/iprange/iprange V=%{make_verbose} OPTIMIZE="%{optflags} %{build_ldflags}" LDFLAGS=
+%{__make} -C admin/iprange V=%{make_verbose} OPTIMIZE="%{build_cflags}" LDFLAGS="%{build_ldflags}"
 %{__make} -C admin/systemd PREFIX=%{_prefix}
 
 %install
