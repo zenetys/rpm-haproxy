@@ -102,6 +102,7 @@ availability environments. Indeed, it can:
 %{__install} -d -m 0755 %{buildroot}%{_bindir}
 %{__install} -p -m 0755 ./admin/halog/halog %{buildroot}%{_bindir}/halog
 %{__install} -p -m 0755 ./admin/iprange/iprange %{buildroot}%{_bindir}/iprange
+%{__install} -p -m 0755 ./admin/iprange/ip6range %{buildroot}%{_bindir}/ip6range
 %{__install} -p -m 0644 ./examples/errorfiles/* %{buildroot}%{haproxy_datadir}
 
 for httpfile in $(find ./examples/errorfiles/ -type f)
@@ -153,4 +154,5 @@ exit 0
 %{_sbindir}/haproxy
 %{_bindir}/halog
 %{_bindir}/iprange
+%{_bindir}/ip6range
 %{_mandir}/man1/*
