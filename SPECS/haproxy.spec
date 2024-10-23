@@ -18,7 +18,7 @@
 
 Name:           haproxy30z+quic
 Version:        %{major}.%{minor}
-Release:        1%{?dist}.zenetys
+Release:        2%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
 
 Group:          System Environment/Daemons
