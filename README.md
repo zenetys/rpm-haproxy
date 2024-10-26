@@ -1,6 +1,6 @@
-| Package&nbsp;name | Supported&nbsp;targets | Includes |
-| :--- | :--- | :--- |
-| haproxy30z+quic | <nobr>el8, el9</nobr> | <nobr>lua 5.4 (static)</nobr> |
+| Package&nbsp;name | Supported&nbsp;targets |
+| :--- | :--- |
+| haproxy30z+quic | <nobr>el8, el9</nobr> |
 <br/>
 
 This package depends on shared libraries provided by:
