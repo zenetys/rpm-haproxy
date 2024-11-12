@@ -1,2 +1,2 @@
-haproxy-2.9 2.9.11 lynx http://www.haproxy.org/download/2.9/src/ haproxy-(2\.9\.[0-9]+)
+haproxy-2.9 2.9.12 lynx http://www.haproxy.org/download/2.9/src/ haproxy-(2\.9\.[0-9]+)
 lua-5.4 5.4.7 lynx http://www.lua.org/ftp/ lua-(5.4.[0-9]+)
