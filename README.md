@@ -1,6 +1,6 @@
 | <nobr>Package name</nobr> | <nobr>Supported targets</nobr> |
 | :--- | :--- |
-| haproxy30z+quic | <nobr>el8, el9</nobr> |
+| haproxy31z+quic | <nobr>el8, el9</nobr> |
 <br/>
 
 This package depends on shared libraries provided by:
