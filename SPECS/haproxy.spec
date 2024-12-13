@@ -1,8 +1,8 @@
 # Initially forked from https://git.centos.org/rpms/haproxy/tree/c8
 # by Benoit Dolez <bdolez at zenetys.com>
 
-%define major           3.0
-%define minor           7
+%define major           3.1
+%define minor           1
 
 %define haproxy_user    haproxy
 %define haproxy_group   %{haproxy_user}
@@ -16,7 +16,7 @@
 %global source_date_epoch_from_changelog 0
 %global _hardened_build 1
 
-Name:           haproxy30z
+Name:           haproxy31z
 Version:        %{major}.%{minor}
 Release:        1%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
@@ -137,7 +137,7 @@ exit 0
 %files
 %defattr(-,root,root,-)
 %doc doc/* examples/*
-%doc CHANGELOG README VERSION
+%doc CHANGELOG README.md VERSION
 %license LICENSE
 %dir %{haproxy_homedir}
 %dir %{haproxy_confdir}

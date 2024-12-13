@@ -1,6 +1,6 @@
 | <nobr>Package name</nobr> | <nobr>Supported targets</nobr> |
 | :--- | :--- |
-| haproxy30z | <nobr>el8, el9</nobr> |
+| haproxy31z | <nobr>el8, el9</nobr> |
 <br/>
 
 
