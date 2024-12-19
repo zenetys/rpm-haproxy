@@ -1,5 +1,10 @@
 Supported targets: el6, el7, el8
 
+The haproxy RPM spec file in this repository was initially forked from
+https://git.centos.org/rpms/haproxy/tree/c8. As per the CentOS Project
+Licensing Policy https://www.centos.org/legal/licensing-policy/, GPLv2
+license applies to this RPM spec repository.
+
 Notes:
 
   - This RPM spec file creates a single package: haproxy24z
