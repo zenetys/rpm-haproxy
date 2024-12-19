@@ -3,6 +3,10 @@
 | haproxy30z | <nobr>el8, el9</nobr> |
 <br/>
 
+The haproxy RPM spec file in this repository was initially forked from
+https://git.centos.org/rpms/haproxy/tree/c8. As per the CentOS Project
+Licensing Policy https://www.centos.org/legal/licensing-policy/, GPLv2
+license applies to this RPM spec repository.
 
 ## Build:
 
