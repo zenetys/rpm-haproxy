@@ -1,6 +1,6 @@
 | <nobr>Package name</nobr> | <nobr>Supported targets</nobr> |
 | :--- | :--- |
-| haproxy31z+quic | <nobr>el8, el9</nobr> |
+| haproxy32z+quic | <nobr>el8, el9</nobr> |
 <br/>
 
 The haproxy RPM spec file in this repository was initially forked from
