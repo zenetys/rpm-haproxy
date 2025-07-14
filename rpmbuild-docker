@@ -15,7 +15,7 @@ function usage() {
   echo "Options:"
   sed -nr "s/^[[:space:]]*## ([^:]*): /\1\t/p" -- "$0" |
     while read OPT DESC ; do
-      printf " %-20s %s\n" "$OPT" "$DESC"
+      printf " %-24s %s\n" "$OPT" "$DESC"
     done
   echo
   return 0
@@ -39,6 +39,11 @@ function on_exit() {
   fi
 }
 
+function fatal() {
+  echo "FATAL: $*" >&2
+  exit 1
+}
+
 trap on_exit EXIT
 
 declare QUIET=$QUIET
@@ -57,6 +62,13 @@ declare SOURCEDIR=$SOURCEDIR
 declare OUTPUTDIR=$OUTPUTDIR
 declare PREBUILDSCRIPT=$PREBUILDSCRIPT
 declare DOWNLOAD=1
+declare SIGN=
+declare GPG_KEYID=
+declare GPG_SECRET_KEY_FILE=
+declare GPG_SECRET_KEY=
+declare GPG_PASSPHRASE_FILE=
+declare GPG_PASSPHRASE_ENV=
+declare GPG_HOMEDIR=${GNUPGHOME:-~/.gnupg}
 declare RPMOPTS=()
 declare RPMBUILDOPTS=()
 declare RPMSPECOPTS=()
@@ -81,7 +93,7 @@ while (( $# > 0 )); do
     -I|--image) IMAGE=$2 ; shift ;;
     ## -s, --source PATH: define source directory
     -s|--sourcedir) SOURCEDIR=${2%/} ; shift ;;
-    ## -O, --outputdir PATH: define output directory for generated packages 
+    ## -O, --outputdir PATH: define output directory for generated packages
     -O|--outputdir) OUTPUTDIR=${2%/} ; shift ;;
     ## --no-download: skip downloading sources if needed
     --no-download) DOWNLOAD=0 ;;
@@ -90,11 +102,23 @@ while (( $# > 0 )); do
     ## --update: update repository with new packages
     --update) UPDATE=1 ;;
     ## --keep: keep build environment after build_ldflags
-    --keep) KEEP=1 ;;
+    --keep) KEEP=1; NOKEEP= ;;
     ## --nokeep: never keep build environment on error
-    --nokeep) NOKEEP=1 ;;
+    --nokeep) NOKEEP=1; KEEP= ;;
     ## --gitrev: create source0 tarball from git revision
     --gitrev) GITREV=$2 ; shift ;;
+    ## --sign: enable rpm signing
+    --sign) SIGN=1 ;;
+    ## --gpg-homedir: path to gpg homedir
+    --gpg-homedir) GPG_HOMEDIR=$2 ; shift ;;
+    ## --gpg-keyid: gpg keyid for signing
+    --gpg-keyid) GPG_KEYID=$2 ; shift ;;
+    ## --gpg-secret-key-file: armored gpg secret key for signin
+    --gpg-secret-key-file) GPG_SECRET_KEY_FILE=$2 ; shift ;;
+    ## --gpg-passphrase-file: read key passphrase from file
+    --gpg-passphrase-file) GPG_PASSPHRASE_FILE=$2 ; shift ;;
+    ## --gpg-passphrase-env: read key passphrase from environment variable
+    --gpg-passphrase-env) GPG_PASSPHRASE_ENV=$2 ; shift ;;
     # generic args
     --) shift ; break ;;
     -*) usage "Unknown parameter '$1'" && exit 1 ;;
@@ -112,11 +136,7 @@ declare SPECFILE=${ARGS[0]}
 
 # cleanup potential trailing slashes
 SPECFILE=${SPECFILE%${SPECFILE##*[!/]}}
-
-if [[ ! -r $SPECFILE ]] ; then
-  echo "FATAL: can't open $SPECFILE for reading" >&2
-  exit 1
-fi
+[[ -r $SPECFILE ]] || fatal "Can't open $SPECFILE for reading"
 
 if [[ -d $SPECFILE ]] ; then
   if [[ -d $SPECFILE/SPECS ]] ; then
@@ -124,11 +144,7 @@ if [[ -d $SPECFILE ]] ; then
   else
     SPECFILE=( $SPECFILE/*.spec )
   fi
-
-  if [[ ${#SPECFILE[@]} != 1 ]]; then
-    echo "FATAL: undefined spec file : '${SPECFILE[*]}' " >&2
-    exit 1
-  fi
+  [[ ${#SPECFILE[@]} == 1 ]] || fatal "Undefined spec file: '${SPECFILE[*]}'"
 fi
 
 # define SPECDIR & SPECFILE from SPECFILE
@@ -153,13 +169,10 @@ elif [[ -z $PREBUILDSCRIPT ]]; then
   done
 fi
 if [[ -n $PREBUILDSCRIPT ]]; then
-  if [[ ! -r $PREBUILDSCRIPT ]]; then
-    echo "FATAL: can't open $PREBUILDSCRIPT for reading" >&2
-    exit 1
-  elif [[ ${PREBUILDSCRIPT##*.} == .sh && ! -x $PREBUILDSCRIPT ]]; then
-    echo "FATAL: prebuild script $PREBUILDSCRIPT not executable" >&2
-    exit 1
-  fi
+  [[ -r $PREBUILDSCRIPT ]] ||
+    fatal "Can't open $PREBUILDSCRIPT for reading"
+  [[ ${PREBUILDSCRIPT##*.} == .sh && ! -x $PREBUILDSCRIPT ]] &&
+    fatal "Prebuild script $PREBUILDSCRIPT not executable"
 fi
 
 [[ -z $SOURCEDIR ]] && SOURCEDIR=$PWD
@@ -168,12 +181,48 @@ fi
 [[ ${OUTPUTDIR:0:1} != "/" ]] && OUTPUTDIR=$PWD/$OUTPUTDIR
 [[ -n $REPO && ${REPO:0:1} != "/" ]] && REPO=$PWD/$REPO
 
+if [[ -n $SIGN ]]; then
+  if [[ -n $GPG_PASSPHRASE_FILE ]]; then
+    [[ ${GPG_PASSPHRASE_FILE:0:1} != "/" ]] && GPG_PASSPHRASE_FILE="$PWD/$GPG_PASSPHRASE_FILE"
+    [[ -r $GPG_PASSPHRASE_FILE ]] || fatal 'Cannot not read passphrase file'
+  elif [[ -n $GPG_PASSPHRASE_ENV ]]; then
+    export -n GPG_PASSPHRASE_ENV
+  else
+    echo -n 'Enter sign key passphrase: '
+    { read -rs GPG_PASSPHRASE; ret=$?; echo; ((ret==0)); } || fatal 'Could not read passphrase'
+    GPG_PASSPHRASE_ENV=GPG_PASSPHRASE
+  fi
+  if [[ -n $GPG_SECRET_KEY_FILE ]]; then
+    [[ ${GPG_SECRET_KEY_FILE:0:1} != "/" ]] && GPG_SECRET_KEY_FILE="$PWD/$GPG_SECRET_KEY_FILE"
+    if [[ -z $GPG_KEYID ]]; then
+      GPG_KEYID=$(gpg --show-keys --with-colons "$GPG_SECRET_KEY_FILE" |
+        awk -F : '$1=="sec"{getline;print $10;exit}')
+      [[ -z $GPG_KEYID ]] && fatal 'Cannot read GPG keyid'
+    fi
+  else
+    [[ -d $GPG_HOMEDIR ]] || fatal "GPG homedir $GPG_HOMEDIR not a directory"
+    # select first secret key if none given
+    if [[ -z $GPG_KEYID ]]; then
+      GPG_KEYID=$(gpg --homedir "$GPG_HOMEDIR" --list-secret-keys --with-colons |
+        awk -F : '$1=="sec"{getline;print $10;exit}')
+      [[ -z $GPG_KEYID ]] && fatal 'Cannot guess GPG keyid'
+    fi
+    # export secret key
+    GPG_SECRET_KEY=$(if [[ -n $GPG_PASSPHRASE_FILE ]]; then cat "$GPG_PASSPHRASE_FILE"
+        else (set +x && echo "${!GPG_PASSPHRASE_ENV}"); fi |
+      gpg --homedir "$GPG_HOMEDIR" --batch --passphrase-fd 0 --pinentry-mode loopback \
+        --armor --export-secret-keys --with-fingerprint "$GPG_KEYID") ||
+          fatal 'Failed to export GPG secret key'
+  fi
+fi
+
 echo "SPECFILE: $SPECFILE"
 echo "SPECDIR: $SPECDIR"
 echo "SOURCEDIR: $SOURCEDIR"
 echo "OUTPUTDIR: $OUTPUTDIR"
 echo "PREBUILDSCRIPT: ${PREBUILDSCRIPT:-none}"
 echo "REPO: ${REPO:-none}"
+echo "SIGN: ${SIGN:-0}"
 
 # Yum might take for ages to complete because it CLOEXEC on all available
 # file descriptors and recent dockers sets a very high default limit.
@@ -255,19 +304,27 @@ function dockerfile_for_dist() {
 # normal dockerfile method may work with recent distro/docker
 DOCKER_OPTS_DIST_el9=( --security-opt seccomp=unconfined )
 function dockerscript_for_dist_el9() {
-    IMAGE=$1; shift
-    echo "# Build $IMAGE..."
-    set -xe
-    id=$(docker run "$@" -d rockylinux:9 sleep infinity)
-    docker exec "$id" dnf update -y
-    docker exec "$id" dnf install -y createrepo gcc make rpm-build
-    docker exec "$id" sh -c "echo '* - nproc 2048' >> /etc/security/limits.d/90-nproc.conf"
-    docker exec "$id" sh -c "echo keepcache=1 >> /etc/dnf/dnf.conf"
-    docker exec "$id" sh -c $'awk \x27/^\[/ { inside=$1 } inside=="[crb]"&&/enabled/{print "enabled=1"; next}{print}\x27 /etc/yum.repos.d/rocky.repo > /etc/yum.repos.d/rocky.repo.new && mv /etc/yum.repos.d/rocky.repo{.new,}'
-    docker exec "$id" dnf clean all
-    docker container commit "$id" "$IMAGE"
-    docker kill "$id"
-    docker rm "$id"
+  IMAGE=$1; shift
+  echo "# Build $IMAGE..."
+  set -xe
+  id=$(docker run "$@" -d ${DOCKER_HUB_IMAGE:-rockylinux:9} sleep infinity)
+  docker exec "$id" dnf update -y
+  docker exec "$id" dnf install -y createrepo gcc make rpm-build
+  docker exec "$id" sh -c "echo '* - nproc 2048' >> /etc/security/limits.d/90-nproc.conf"
+  docker exec "$id" sh -c "echo keepcache=1 >> /etc/dnf/dnf.conf"
+  docker exec "$id" sh -c $'awk \x27/^\[/ { inside=$1 } inside=="[crb]"&&/enabled/{print "enabled=1"; next}{print}\x27 /etc/yum.repos.d/rocky.repo > /etc/yum.repos.d/rocky.repo.new && mv /etc/yum.repos.d/rocky.repo{.new,}'
+  docker exec "$id" dnf clean all
+  docker container commit "$id" "$IMAGE"
+  docker kill "$id"
+  docker rm "$id"
+}
+
+# normal dockerfile method may work with recent distro/docker
+DOCKER_OPTS_DIST_el10=( --security-opt seccomp=unconfined )
+DOCKERSCRIPT_ENV_for_el10=$(declare -f dockerscript_for_dist_el9)
+function dockerscript_for_dist_el10() {
+  DOCKER_HUB_IMAGE='rockylinux/rockylinux:10' \
+    dockerscript_for_dist_el9 "$@"
 }
 
 # Lookup docker script source to build a base image for $DIST.
@@ -275,6 +332,8 @@ function dockerscript_for_dist() {
   if [[ -f ~/.config/${0##*/}/build-image.$DIST ]]; then
     cat ~/.config/"${0##*/}/build-image.$DIST"
   elif declare -f "dockerscript_for_dist_$DIST"; then
+    local env_ref="DOCKERSCRIPT_ENV_for_$DIST"
+    [[ -n ${!env_ref} ]] && echo "$DOCKERSCRIPT_ENV_for_el10"
     echo "'dockerscript_for_dist_$DIST' \"\$@\""
   else
     return 1
@@ -283,50 +342,39 @@ function dockerscript_for_dist() {
 
 if [[ -f ~/.config/"${0##*/}/before-image.hook" ]] &&
    ! source ~/.config/"${0##*/}/before-image.hook"; then
-    echo "FATAL: failed to source before-image.hook" >&2
-    exit 1
+  fatal 'Failed to source before-image.hook'
 fi
 
 DOCKER_OPTS_DIST="DOCKER_OPTS_DIST_$DIST[@]"
 DOCKER_OPTS_DIST=( "${!DOCKER_OPTS_DIST}" )
 
 if [[ -z $IMAGE ]]; then
-  if [[ -z $DIST ]]; then
-    echo "FATAL: require -d DIST or -I IMAGE (or both)" >&2
-    exit 1
-  fi
+  [[ -z $DIST ]] && fatal 'Require -d DIST or -I IMAGE (or both)'
   # Set $IMAGE from $DIST
   image_src=; image_script=;
   if ! image_src=$(dockerfile_for_dist) &&
      ! image_script=$(dockerscript_for_dist); then
-    echo "FATAL: no image source for $DIST" >&2
-    exit 1
+    fatal "No image source for $DIST"
   fi
   image_sig=$(echo "${image_src:-$image_script}" |md5sum |sed -re 's,^(.{7}).*,\1,')
   IMAGE="rpmbuild/$DIST:$image_sig"
   if ! docker images -q "$IMAGE" |grep -q .; then
     # Build docker image
     if [[ -n $image_src ]] && ! echo "$image_src" |docker build -t "$IMAGE" -; then
-      echo "FATAL: failed to build image $IMAGE for $DIST" >&2
-      exit 1
+      fatal "Failed to build image $IMAGE for $DIST"
     elif ! echo "$image_script" |bash -s -- "$IMAGE" "${DOCKER_OPTS_DIST[@]}"; then
-      echo "FATAL: image $IMAGE for $DIST, build scripit failed" >&2
-      exit 1
+      fatal "Image $IMAGE for $DIST, build scripit failed"
     fi
   fi
 elif [[ -z $DIST ]]; then
   # Set $DIST from $IMAGE
   DIST=$(docker run --rm "$IMAGE" rpm -E '%{dist}' |sed 's,^\.\+,,')
-  if [[ -z $DIST ]]; then
-    echo "FATAL: failed to identify dist in image $IMAGE" >&2
-    exit 1
-  fi
+  [[ -z $DIST ]] && fatal "Failed to identify dist in image $IMAGE"
 fi
 
 if [[ -f ~/.config/"${0##*/}/after-image.hook" ]] &&
    ! source ~/.config/"${0##*/}/after-image.hook"; then
-    echo "FATAL: failed to source after-image.hook" >&2
-    exit 1
+  fatal "Failed to source after-image.hook"
 fi
 
 # Extract type and version from $DIST for convenience
@@ -342,10 +390,7 @@ echo "IMAGE: $IMAGE"
 for i in "$CACHEBASE"/cache-{yum-"$DIST",shared} \
          "$OUTPUTDIR"/{RPMS,SRPMS} \
          ${REPO:+"$REPO"}; do
-  if [[ ! -d $i ]] && ! mkdir -p "$i"; then
-    echo "FATAL: cannot create directory: $i" >&2
-    exit 1
-  fi
+  [[ ! -d $i ]] && ! mkdir -p "$i" && fatal "Cannot create directory: $i"
 done
 
 # Need rpmbuild --noclean option to keep generated files in place
@@ -408,19 +453,14 @@ DOCKER_OPTS=(
   --mount "type=bind,src=$CACHEBASE/cache-yum-$DIST,dst=/var/cache/yum"
   --mount "type=bind,src=$CACHEBASE/cache-yum-$DIST,dst=/var/cache/dnf"
   --mount "type=bind,src=$CACHEBASE/cache-shared,dst=/tmp/cache-shared"
-  --mount "type=bind,src=$SOURCEDIR,dst=/tmp/SOURCES"
-  --mount "type=bind,src=$OUTPUTDIR/SRPMS,dst=/tmp/SRPMS"
-  --mount "type=bind,src=$OUTPUTDIR/RPMS,dst=/tmp/RPMS"
+  --mount "type=bind,src=$SOURCEDIR,dst=/tmp/shared/SOURCES"
+  --mount "type=bind,src=$OUTPUTDIR/SRPMS,dst=/tmp/shared/SRPMS"
+  --mount "type=bind,src=$OUTPUTDIR/RPMS,dst=/tmp/shared/RPMS"
+  ${GPG_PASSPHRASE_FILE:+--mount "type=bind,src=$GPG_PASSPHRASE_FILE,dst=/dev/shm/.p,ro"}
+  ${GPG_SECRET_KEY_FILE:+--mount "type=bind,src=$GPG_SECRET_KEY_FILE,dst=/dev/shm/k,ro"}
+  ${REPO:+--mount "type=bind,src=$REPO,dst=/tmp/local-repo"}
+  ${PREBUILDSCRIPT:+--mount "type=bind,src=$PREBUILDSCRIPT,dst=/tmp/${PREBUILDSCRIPT##*/}"}
 )
-
-if [[ -n $REPO ]] ; then
-  DOCKER_OPTS+=( --mount "type=bind,src=$REPO,dst=/tmp/local-repo" )
-fi
-
-if [[ -n $PREBUILDSCRIPT ]] ; then
-  DOCKER_OPTS+=( --mount "type=bind,src=$PREBUILDSCRIPT,dst=/tmp/${PREBUILDSCRIPT##*/}" )
-fi
-
 
 function build_exit() {
   local status=${?:-0}
@@ -428,16 +468,17 @@ function build_exit() {
   [[ -n $KEEP || $status != 0 ]] && sleep infinity
   exit "$status"
 }
-function build_runas() {
-  printf -v qcmd "%q " "${@:2}"
-  runuser -l "$1" -c "$qcmd"
+function build_runuser() {
+  local cmd
+  printf -v cmd '%q ' "$@"
+  runuser -l "$BUSER" -c "$cmd"
 }
 function build_dl() {
   local curlopts=( -fRL --connect-timeout 15 ) url=$1 dest=${2:-$CACHEDIR} retval
   if [[ $url =~ ^([^#]+)(#?)/([^/]+)$ ]]; then
     [[ -f $dest/${BASH_REMATCH[3]} ]] && return 0
     [[ ${BASH_REMATCH[2]} == '#' ]] && url=${BASH_REMATCH[1]}
-    ${RUNAS:+build_runas "$RUNAS" }\
+    ${RUNUSER:+build_runuser} \
       curl "${curlopts[@]}" -o "$dest/${BASH_REMATCH[3]}" "$url"
     retval=$?
     REPLY="cURL return code $retval"
@@ -452,8 +493,19 @@ function build_main() {
   trap build_exit EXIT
   OIFS=$IFS
 
-  mkdir -p "$BHOME"
+  mkdir -p -m 700 "$BHOME"
   chown "$BUSER:$BGROUP" "$BHOME"
+
+  if [[ -n $SIGN ]]; then
+    build_runuser mkdir -m 700 /dev/shm/g
+    build_runuser ln -sT /dev/shm/g "$BHOME/.gnupg"
+    build_runuser sh -exc 'GPG_TTY= gpg --passphrase-file /dev/shm/.p \
+      --pinentry-mode loopback --import /dev/shm/k'
+  fi
+
+  mkdir /tmp/build
+  chown "$BUSER:$BGROUP" /tmp/{build,shared}
+  ln -s ../shared/SOURCES /tmp/build/
 
   if [[ -n "$REPO" ]]; then
     cat >/etc/yum.repos.d/local-repo.repo <<'EOF'
@@ -464,8 +516,8 @@ enabled=1
 gpgcheck=0
 EOF
     if [[ ! -d /tmp/local-repo/RPMS/repodata ]]; then
-      build_runas "$BUSER" mkdir -p /tmp/local-repo/RPMS
-      build_runas "$BUSER" createrepo /tmp/local-repo/RPMS
+      build_runuser mkdir -p /tmp/local-repo/RPMS
+      build_runuser createrepo /tmp/local-repo/RPMS
     fi
   fi
 
@@ -477,7 +529,9 @@ EOF
     esac
   fi
 
-  RPMOPTS+=(  --define '_topdir /tmp/../tmp/../tmp' )
+  # Having _topdir /tmp causes problems in el6/el7 because it is not long enough
+  # https://access.redhat.com/solutions/1426113
+  RPMOPTS+=(  --define '_topdir /tmp/../tmp/../tmp/build' )
   rpmbuildopts=( "${RPMOPTS[@]}" "${RPMBUILDOPTS[@]}" )
   rpmspecopts=( "${RPMOPTS[@]}" "${RPMSPECOPTS[@]}" )
 
@@ -496,20 +550,30 @@ EOF
     dlsources=( $(rpmspec -P "/tmp/$SPECFILE" "${rpmspecopts[@]}" |
       sed -nr -e 's,^(source|patch)[0-9]*\s*:\s*(\S+).*,\2,i;T;/:\/\//p') )
     for i in "${dlsources[@]}"; do
-        RUNAS="$BUSER" build_dl "$i" /tmp/SOURCES
+        RUNUSER=1 build_dl "$i" /tmp/shared/SOURCES
     done
   fi
 
-  # Having _topdir /tmp causes problems in el6/el7 because it is not long enough
-  # https://access.redhat.com/solutions/1426113
-  build_runas "$BUSER" rpmbuild "${rpmbuildopts[@]}" -ba "/tmp/$SPECFILE"
+  build_runuser rpmbuild "${rpmbuildopts[@]}" -ba "/tmp/$SPECFILE"
 
-  if [[ -n $REPO && -n $UPDATE ]] ; then
-    for repo in RPMS SRPMS; do
-      build_runas "$BUSER" cp -aT "/tmp/$repo/" "/tmp/local-repo/$repo/"
-      build_runas "$BUSER" createrepo --update "/tmp/local-repo/$repo"
-    done
+  if [[ -n $SIGN ]]; then
+    rpm -q rpm-sign || yum install -y rpm-sign
+    rpms=( $(find /tmp/build/{RPMS,SRPMS} -type f -name '*.rpm') )
+    if [[ -n $rpms ]]; then
+      build_runuser sh -exc 'GPG_TTY= rpm \
+        --define "_gpg_sign_cmd_extra_args --passphrase-file /dev/shm/.p --pinentry-mode loopback" \
+        --define "_gpg_name $1" --addsign "${@:2}"' -- "$GPG_KEYID" "${rpms[@]}"
+    fi
   fi
+
+  for repo in RPMS SRPMS; do
+    build_runuser cp -aT "/tmp/build/$repo/" "/tmp/shared/$repo/"
+
+    if [[ -n $REPO && -n $UPDATE ]] ; then
+      build_runuser cp -aT "/tmp/build/$repo/" "/tmp/local-repo/$repo/"
+      build_runuser createrepo --update "/tmp/local-repo/$repo"
+    fi
+  done
 }
 
 # Build RPM in the container
@@ -517,16 +581,19 @@ CTNAME="build_${RANDOM}${RANDOM}${RANDOM}${RANDOM}"
 DOCKER_OPTS+=( --name "$CTNAME" -i --rm )
 trap 'docker kill "$CTNAME"; exit;' INT
 cat <<__EOF__ |docker run "${DOCKER_OPTS[@]}" "$IMAGE" /bin/bash &
-$(declare -p BGROUP BHOME BUSER DIST DIST_TYPE DIST_VERSION DOWNLOAD KEEP NOKEEP REPO RPMOPTS RPMBUILDOPTS RPMSPECOPTS SPECFILE UPDATE)
-$(printf 'PREBUILDSCRIPT=%q\n' "${PREBUILDSCRIPT##*/}")
-$(declare -f build_exit)
-$(declare -f build_runas)
-$(declare -f build_dl)
-$(declare -f build_main)
+declare -p HOSTNAME
+$(declare -p BGROUP BHOME BUSER DIST DIST_TYPE DIST_VERSION DOWNLOAD KEEP NOKEEP REPO RPMOPTS RPMBUILDOPTS RPMSPECOPTS SPECFILE UPDATE SIGN GPG_KEYID)
 echo "$(getent group "$BGROUP")" >> /etc/group
 echo "$(getent passwd "$BUSER")" >> /etc/passwd
+${GPG_SECRET_KEY:+(umask 0277 && (set +x && echo $(printf '%q\n' "$GPG_SECRET_KEY")) > /dev/shm/k && chown "\$BUSER" /dev/shm/k)}
+${GPG_PASSPHRASE_ENV:+(umask 0277 && (set +x && echo $(printf '%q\n' "${!GPG_PASSPHRASE_ENV}")) > /dev/shm/.p && chown "\$BUSER" /dev/shm/.p)}
+$(printf 'PREBUILDSCRIPT=%q\n' "${PREBUILDSCRIPT##*/}")
+$(declare -f build_exit)
+$(declare -f build_runuser)
+$(declare -f build_dl)
+$(declare -f build_main)
 # exports for prebuild script
-export -f build_dl build_runas
+export -f build_dl build_runuser
 export CACHEDIR=/tmp/cache-shared DIST DIST_TYPE DIST_VERSION
 build_main
 __EOF__
