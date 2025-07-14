@@ -497,6 +497,9 @@ function build_main() {
   chown "$BUSER:$BGROUP" "$BHOME"
 
   if [[ -n $SIGN ]]; then
+    signreq=()
+    for i in rpm-sign gnupg2; do rpm -q "$i" || signreq+=( "$i" ); done
+    [[ -n $signreq ]] && yum install -y "${signreq[@]}"
     build_runuser mkdir -m 700 /dev/shm/g
     build_runuser ln -sT /dev/shm/g "$BHOME/.gnupg"
     build_runuser sh -exc 'GPG_TTY= gpg --passphrase-file /dev/shm/.p \
@@ -557,7 +560,6 @@ EOF
   build_runuser rpmbuild "${rpmbuildopts[@]}" -ba "/tmp/$SPECFILE"
 
   if [[ -n $SIGN ]]; then
-    rpm -q rpm-sign || yum install -y rpm-sign
     rpms=( $(find /tmp/build/{RPMS,SRPMS} -type f -name '*.rpm') )
     if [[ -n $rpms ]]; then
       build_runuser sh -exc 'GPG_TTY= rpm \
