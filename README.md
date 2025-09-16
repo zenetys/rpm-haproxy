@@ -19,6 +19,7 @@ images from internet if not already downloaded.
 ## run from this git base tree
 $ ./rpmbuild-docker -d el8
 $ ./rpmbuild-docker -d el9
+$ ./rpmbuild-docker -d el10
 ```
 
 ## Prebuilt packages:
