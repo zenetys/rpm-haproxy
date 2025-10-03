@@ -2,7 +2,7 @@
 # by Benoit Dolez <bdolez at zenetys.com>
 
 %define major			2.4
-%define minor			29
+%define minor			30
 
 %define haproxy_user    haproxy
 %define haproxy_group   %{haproxy_user}
@@ -18,7 +18,7 @@
 
 Name:           haproxy24z
 Version:        %{major}.%{minor}
-Release:        2%{?dist}.zenetys
+Release:        1%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
 
 Group:          System Environment/Daemons
@@ -33,8 +33,6 @@ Source4:        haproxy.sysconfig
 Source5:        halog.1
 Source6:        http://www.lua.org/ftp/%{liblua}.tar.gz
 Source7:		lua-5.3-luaroot.patch
-
-Patch100: haproxy-2.4-BUG-CRITICAL-mjson-fix-possible-DoS-when-parsing-num.patch
 
 BuildRequires:      pcre-devel
 BuildRequires:      zlib-devel
@@ -75,7 +73,6 @@ availability environments. Indeed, it can:
 %prep
 %setup -q -n haproxy-%{version}
 %setup -T -D -a 6 -n haproxy-%{version}
-%patch100 -p1
 
 %build
 
