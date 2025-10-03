@@ -1,1 +1,1 @@
-haproxy-3.1 3.1.8 lynx http://www.haproxy.org/download/3.1/src/ haproxy-(3\.1\.[0-9]+)
+haproxy-3.1 3.1.9 lynx http://www.haproxy.org/download/3.1/src/ haproxy-(3\.1\.[0-9]+)
