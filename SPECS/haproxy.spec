@@ -1,8 +1,8 @@
 # Initially forked from https://git.centos.org/rpms/haproxy/tree/c8
 # by Benoit Dolez <bdolez at zenetys.com>
 
-%define major           3.2
-%define minor           10
+%define major           3.3
+%define minor           1
 
 %define haproxy_user    haproxy
 %define haproxy_group   %{haproxy_user}
@@ -20,7 +20,7 @@
 # non-standard rpaths for aws-lc libraries, which is on purpose
 %global __brp_check_rpaths %{nil}
 
-Name:           haproxy32z+quic
+Name:           haproxy33z+quic
 Version:        %{major}.%{minor}
 Release:        1%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
