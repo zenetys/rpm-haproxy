@@ -211,8 +211,8 @@ if [[ -n $SIGN ]]; then
     GPG_SECRET_KEY=$(if [[ -n $GPG_PASSPHRASE_FILE ]]; then cat "$GPG_PASSPHRASE_FILE"
         else (set +x && echo "${!GPG_PASSPHRASE_ENV}"); fi |
       gpg --homedir "$GPG_HOMEDIR" --batch --passphrase-fd 0 --pinentry-mode loopback \
-        --armor --export-secret-keys --with-fingerprint "$GPG_KEYID") ||
-          fatal 'Failed to export GPG secret key'
+        --armor --export-secret-keys --with-fingerprint "$GPG_KEYID")
+    [[ $? != 0 || -z $GPG_SECRET_KEY ]] && fatal 'Failed to export GPG secret key'
   fi
 fi
 
@@ -223,6 +223,20 @@ echo "OUTPUTDIR: $OUTPUTDIR"
 echo "PREBUILDSCRIPT: ${PREBUILDSCRIPT:-none}"
 echo "REPO: ${REPO:-none}"
 echo "SIGN: ${SIGN:-0}"
+
+docker_version=$(docker --version)
+if (( $? == 127 )); then
+    fatal 'Command docker --version failed with status 127, docker/podman environment not ready!'
+elif [[ ${docker_version,,} == *podman*  ]]; then
+    IS_PODMAN=1
+    IS_DOCKER=
+else
+    IS_PODMAN=
+    IS_DOCKER=1
+fi
+
+echo "IS_DOCKER: $IS_DOCKER"
+echo "IS_PODMAN: $IS_PODMAN"
 
 # Yum might take for ages to complete because it CLOEXEC on all available
 # file descriptors and recent dockers sets a very high default limit.
@@ -419,7 +433,7 @@ function git_archive_mtime() {
     "$1" ./ ':!rpmbuild-docker' ':!*.spec' ':!SPECS/' |
     tar x -C "$GIT_ARCHIVE_TMP/" || return 1
   find "$GIT_ARCHIVE_TMP/$3/" -not -type d -printf '%P\n' |
-    xargs -n 1 -I{} sh -c 'touch -d "$(git log --pretty=format:%ci -n 1 "$1" -- "$3")" "$2/$3"' -- \
+    xargs -I{} sh -c 'touch -d "$(git log --pretty=format:%ci -n 1 "$1" -- "$3")" "$2/$3"' -- \
       "$1" "$GIT_ARCHIVE_TMP/$3/" {} || return 1
   tar czf "$2.tar.gz" -C "$GIT_ARCHIVE_TMP/" "$3"
 }
@@ -452,6 +466,7 @@ DOCKER_OPTS=(
   --mount "type=bind,src=$SPECDIR/$SPECFILE,dst=/tmp/$SPECFILE"
   --mount "type=bind,src=$CACHEBASE/cache-yum-$DIST,dst=/var/cache/yum"
   --mount "type=bind,src=$CACHEBASE/cache-yum-$DIST,dst=/var/cache/dnf"
+  --mount "type=bind,src=$CACHEBASE/cache-yum-$DIST,dst=/var/cache/libdnf5"
   --mount "type=bind,src=$CACHEBASE/cache-shared,dst=/tmp/cache-shared"
   --mount "type=bind,src=$SOURCEDIR,dst=/tmp/shared/SOURCES"
   --mount "type=bind,src=$OUTPUTDIR/SRPMS,dst=/tmp/shared/SRPMS"
@@ -460,6 +475,7 @@ DOCKER_OPTS=(
   ${GPG_SECRET_KEY_FILE:+--mount "type=bind,src=$GPG_SECRET_KEY_FILE,dst=/dev/shm/k,ro"}
   ${REPO:+--mount "type=bind,src=$REPO,dst=/tmp/local-repo"}
   ${PREBUILDSCRIPT:+--mount "type=bind,src=$PREBUILDSCRIPT,dst=/tmp/${PREBUILDSCRIPT##*/}"}
+  ${IS_PODMAN:+--userns keep-id --user 0}
 )
 
 function build_exit() {
@@ -496,16 +512,6 @@ function build_main() {
   mkdir -p -m 700 "$BHOME"
   chown "$BUSER:$BGROUP" "$BHOME"
 
-  if [[ -n $SIGN ]]; then
-    signreq=()
-    for i in rpm-sign gnupg2; do rpm -q "$i" || signreq+=( "$i" ); done
-    [[ -n $signreq ]] && yum install -y "${signreq[@]}"
-    build_runuser mkdir -m 700 /dev/shm/g
-    build_runuser ln -sT /dev/shm/g "$BHOME/.gnupg"
-    build_runuser sh -exc 'GPG_TTY= gpg --passphrase-file /dev/shm/.p \
-      --pinentry-mode loopback --import /dev/shm/k'
-  fi
-
   mkdir /tmp/build
   chown "$BUSER:$BGROUP" /tmp/{build,shared}
   ln -s ../shared/SOURCES /tmp/build/
@@ -530,6 +536,16 @@ EOF
       *.inc) source "/tmp/$PREBUILDSCRIPT" ;;
       *) echo 'Invalid prebuild script/source file'; exit 1 ;;
     esac
+  fi
+
+  if [[ -n $SIGN ]]; then
+    signreq=( openssl-libs )
+    for i in rpm-sign gnupg2; do rpm -q "$i" || signreq+=( "$i" ); done
+    [[ -n $signreq ]] && yum install -y "${signreq[@]}"
+    build_runuser mkdir -m 700 /dev/shm/g
+    build_runuser ln -sT /dev/shm/g "$BHOME/.gnupg"
+    build_runuser sh -exc 'GPG_TTY= gpg --passphrase-file /dev/shm/.p \
+      --pinentry-mode loopback --import /dev/shm/k'
   fi
 
   # Having _topdir /tmp causes problems in el6/el7 because it is not long enough
@@ -585,6 +601,10 @@ trap 'docker kill "$CTNAME"; exit;' INT
 cat <<__EOF__ |docker run "${DOCKER_OPTS[@]}" "$IMAGE" /bin/bash &
 declare -p HOSTNAME
 $(declare -p BGROUP BHOME BUSER DIST DIST_TYPE DIST_VERSION DOWNLOAD KEEP NOKEEP REPO RPMOPTS RPMBUILDOPTS RPMSPECOPTS SPECFILE UPDATE SIGN GPG_KEYID)
+# podman creates group/passwd entries when run with --userns keep-id,
+# but lets's normalize with docker, so reset them first
+sed -i -e "/^$BGROUP:/d" /etc/group
+sed -i -e "/^$BUSER:/d" /etc/passwd
 echo "$(getent group "$BGROUP")" >> /etc/group
 echo "$(getent passwd "$BUSER")" >> /etc/passwd
 ${GPG_SECRET_KEY:+(umask 0277 && (set +x && echo $(printf '%q\n' "$GPG_SECRET_KEY")) > /dev/shm/k && chown "\$BUSER" /dev/shm/k)}
