@@ -18,7 +18,7 @@
 
 Name:           haproxy33z
 Version:        %{major}.%{minor}
-Release:        1%{?dist}.zenetys
+Release:        2%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
 
 Group:          System Environment/Daemons
@@ -99,22 +99,15 @@ availability environments. Indeed, it can:
 %{__install} -p -m 0755 ./admin/halog/halog %{buildroot}%{_bindir}/halog
 %{__install} -p -m 0755 ./admin/iprange/iprange %{buildroot}%{_bindir}/iprange
 %{__install} -p -m 0755 ./admin/iprange/ip6range %{buildroot}%{_bindir}/ip6range
-%{__install} -p -m 0644 ./examples/errorfiles/* %{buildroot}%{haproxy_datadir}
 
-for httpfile in $(find ./examples/errorfiles/ -type f)
-do
-    %{__install} -p -m 0644 $httpfile %{buildroot}%{haproxy_datadir}
-done
-
-%{__rm} -rf ./examples/errorfiles/
-
-find ./examples/* -type f ! -name "*.cfg" -exec %{__rm} -f "{}" \;
-
-for textfile in $(find ./ -type f -name '*.txt')
-do
+for textfile in $(find ./ -type f -name '*.txt'); do
     %{__mv} $textfile $textfile.old
     iconv --from-code ISO8859-1 --to-code UTF-8 --output $textfile $textfile.old
     %{__rm} -f $textfile.old
+done
+
+find ./examples/ -type f |while read -r; do
+    %{__install} -p -D -m 0644 "$REPLY" "%{buildroot}%{haproxy_datadir}/${REPLY#./examples/}"
 done
 
 %pre
@@ -136,7 +129,7 @@ exit 0
 
 %files
 %defattr(-,root,root,-)
-%doc doc/* examples/*
+%doc doc/*
 %doc CHANGELOG README.md VERSION
 %license LICENSE
 %dir %{haproxy_homedir}
