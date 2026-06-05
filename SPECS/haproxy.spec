@@ -22,7 +22,7 @@
 
 Name:           haproxy32z+quic
 Version:        %{major}.%{minor}
-Release:        1%{?dist}.zenetys
+Release:        2%{?dist}.zenetys
 Summary:        HAProxy reverse proxy for high availability environments
 
 Group:          System Environment/Daemons
@@ -35,7 +35,7 @@ Source3:        haproxy.logrotate
 Source4:        haproxy.sysconfig
 Source5:        halog.1
 
-BuildRequires:      aws-lc-0z-devel
+BuildRequires:      aws-lc-4z-devel
 BuildRequires:      gcc
 BuildRequires:      lua-devel
 BuildRequires:      make
@@ -43,7 +43,7 @@ BuildRequires:      pcre2-devel
 BuildRequires:      systemd-devel
 BuildRequires:      systemd-rpm-macros
 
-Requires:           aws-lc-0z
+Requires:           aws-lc-4z
 Requires(pre):      shadow-utils
 
 %{?systemd_requires}
@@ -82,8 +82,8 @@ availability environments. Indeed, it can:
     USE_GETADDRINFO=1 \
     USE_SYSTEMD=1 \
     USE_NS=1 \
-    SSL_LIB='%{aws_lc_0z_prefix}/%{_lib} -Wl,-rpath,%{aws_lc_0z_prefix}/%{_lib}' \
-    SSL_INC='%{aws_lc_0z_prefix}/include' \
+    SSL_LIB='%{aws_lc_4z_prefix}/%{_lib} -Wl,-rpath,%{aws_lc_4z_prefix}/%{_lib}' \
+    SSL_INC='%{aws_lc_4z_prefix}/include' \
     CFLAGS="%{build_cflags}" \
     LDFLAGS="%{build_ldflags}"
 
