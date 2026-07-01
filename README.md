@@ -1,6 +1,6 @@
 | <nobr>Package name</nobr> | <nobr>Supported targets</nobr> |
 | :--- | :--- |
-| haproxy34z | <nobr>el8, el9, el10</nobr> |
+| haproxy34z | <nobr>el9, el10</nobr> |
 <br/>
 
 The haproxy RPM spec file in this repository was initially forked from
@@ -12,12 +12,11 @@ license applies to this RPM spec repository.
 
 The package can be built easily using the script rpmbuild-docker provided
 in this repository. In order to use this script, _**a functional Docker
-environment is needed**_, with ability to pull Rocky Linux (el8, el9)
-images from internet if not already downloaded.
+environment is needed**_, with ability to pull Rocky Linux images from
+internet if not already downloaded.
 
 ```
 ## run from this git base tree
-$ ./rpmbuild-docker -d el8
 $ ./rpmbuild-docker -d el9
 $ ./rpmbuild-docker -d el10
 ```
