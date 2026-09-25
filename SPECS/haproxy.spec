@@ -99,6 +99,7 @@ availability environments. Indeed, it can:
 %{__install} -p -D -m 0644 %{SOURCE4} %{buildroot}%{_sysconfdir}/sysconfig/haproxy
 
 %{__install} -p -D -m 0644 %{SOURCE2} %{buildroot}%{haproxy_confdir}/haproxy.cfg
+%{__install} -d -D -m 0755 %{buildroot}%{haproxy_confdir}/conf.d
 %{__install} -p -D -m 0644 %{SOURCE3} %{buildroot}%{_sysconfdir}/logrotate.d/haproxy
 %{__install} -p -D -m 0644 %{SOURCE5} %{buildroot}%{_mandir}/man1/halog.1
 %{__install} -d -m 0755 %{buildroot}%{haproxy_homedir}
@@ -142,6 +143,7 @@ exit 0
 %license LICENSE
 %dir %{haproxy_homedir}
 %dir %{haproxy_confdir}
+%dir %{haproxy_confdir}/conf.d
 %dir %{haproxy_datadir}
 %{haproxy_datadir}/*
 %config(noreplace) %{haproxy_confdir}/haproxy.cfg
